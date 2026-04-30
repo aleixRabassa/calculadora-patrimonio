@@ -1,0 +1,195 @@
+.ingresos {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 32px;
+  padding: 24px;
+  text-align: left;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ingresos h2 {
+  margin: 0 0 20px;
+  font-size: 22px;
+}
+
+.ingresos h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-h);
+  margin: 0 0 12px;
+}
+
+/* Form fields */
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.input-group input {
+  flex: 1;
+  border-radius: 6px 0 0 6px;
+}
+
+.input-group .suffix {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-left: none;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: 0 6px 6px 0;
+  white-space: nowrap;
+}
+
+input[type="number"] {
+  font-family: var(--mono);
+  font-size: 15px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+/* Computed values */
+.field--computed {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.computed-value {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.computed-value--negative {
+  color: #e53e3e;
+}
+
+.computed-value .detail {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+/* Subidas salariales */
+.subidas {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.subidas__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.subidas__header h3 {
+  margin: 0;
+}
+
+.subidas__empty {
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+.btn-add {
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(170, 59, 255, 0.18);
+  }
+}
+
+.subida-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.subida-field {
+  flex: 1;
+}
+
+.subida-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.subida-field input {
+  width: 100%;
+}
+
+.btn-remove {
+  font-size: 16px;
+  width: 32px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #e53e3e;
+    color: white;
+    border-color: #e53e3e;
+  }
+}
+
+/* Charts */
+.ingresos__charts {
+  padding-top: 8px;
+}
+
+.ingresos__charts h3 {
+  margin-bottom: 16px;
+}

@@ -68,6 +68,14 @@ The following skills are installed under `.agents/skills/` and must be followed:
 - **Sin over-engineering**: no añadir contextos globales, reducers ni state managers hasta que haya un caso concreto que lo justifique. `useLocalStorage` es suficiente por ahora.
 - **Componentes pequeños y enfocados**: cada componente hace una sola cosa. Los formularios de entrada van separados de los paneles de resultados.
 
+## Workflow
+
+Antes de implementar cualquier tarea no trivial:
+
+1. **Brainstorming obligatorio**: proponer al usuario al menos 2-3 enfoques diferentes que encajen con lo que pide, explicando pros y contras de cada uno.
+2. **Preguntar lo que no esté claro**: si hay ambigüedad en el alcance, el comportamiento esperado o los casos borde, preguntar antes de asumir.
+3. **Dejar que el usuario elija**: no avanzar con la implementación hasta que el usuario confirme el enfoque preferido.
+
 ## Key Conventions
 
 - **`verbatimModuleSyntax` is enabled** — use `import type` for type-only imports.

@@ -1,5 +1,59 @@
 import { describe, test, expect } from 'vitest'
-import { calcularHipoteca, calcularInversion, calcularPatrimonioNeto } from './calculations'
+import { calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto } from './calculations'
+
+describe('calcularSalarioNeto', () => {
+  test('retorna ceros para bruto inválido', () => {
+    const r = calcularSalarioNeto(0)
+    expect(r.netoMensual).toBe(0)
+    expect(r.irpf).toBe(0)
+  })
+
+  test('retorna ceros para bruto negativo', () => {
+    const r = calcularSalarioNeto(-10_000)
+    expect(r.netoMensual).toBe(0)
+  })
+
+  test('salario bajo (~20k) tiene retención IRPF baja', () => {
+    const r = calcularSalarioNeto(20_000)
+    expect(r.netoMensual).toBeGreaterThan(0)
+    expect(r.netoMensual).toBeLessThan(20_000 / 12)
+    expect(r.tipoEfectivoIRPF).toBeLessThan(15)
+    expect(r.seguridadSocial).toBeCloseTo(20_000 * 0.0647, 0)
+  })
+
+  test('salario medio (~30k) neto mensual aproximadamente correcto', () => {
+    const r = calcularSalarioNeto(30_000)
+    // Neto mensual para 30k bruto debería estar entre ~1800-2000€
+    expect(r.netoMensual).toBeGreaterThan(1_750)
+    expect(r.netoMensual).toBeLessThan(2_100)
+    expect(r.tipoEfectivoIRPF).toBeGreaterThan(8)
+    expect(r.tipoEfectivoIRPF).toBeLessThan(18)
+  })
+
+  test('salario alto (~60k) tiene retención mayor', () => {
+    const r = calcularSalarioNeto(60_000)
+    expect(r.tipoEfectivoIRPF).toBeGreaterThan(15)
+    expect(r.netoMensual).toBeGreaterThan(3_000)
+    expect(r.netoMensual).toBeLessThan(4_000)
+  })
+
+  test('seguridad social está limitada por la base máxima de cotización', () => {
+    const r80k = calcularSalarioNeto(80_000)
+    const r100k = calcularSalarioNeto(100_000)
+    // SS should be the same since both exceed the cap
+    expect(r80k.seguridadSocial).toBeCloseTo(r100k.seguridadSocial, 2)
+  })
+
+  test('netoAnual = bruto - SS - IRPF', () => {
+    const r = calcularSalarioNeto(40_000)
+    expect(r.netoAnual).toBeCloseTo(40_000 - r.seguridadSocial - r.irpf, 2)
+  })
+
+  test('netoMensual = netoAnual / 12', () => {
+    const r = calcularSalarioNeto(35_000)
+    expect(r.netoMensual).toBeCloseTo(r.netoAnual / 12, 2)
+  })
+})
 
 describe('calcularHipoteca', () => {
   test('calcula cuota mensual con interés positivo (caso estándar)', () => {

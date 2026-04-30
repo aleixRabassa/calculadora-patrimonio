@@ -1,3 +1,84 @@
+// --- Salario Neto (España, joven trabajador estándar, sin hijos, 12 pagas) ---
+
+const SS_EMPLOYEE_RATE = 0.0647 // Contingencias comunes 4.70% + Desempleo 1.55% + FP 0.10% + MEI 0.12%
+const SS_MAX_BASE_ANUAL = 56_646 // Base máxima cotización 2024 (~4720.50€/mes × 12)
+const GASTOS_DEDUCIBLES = 2_000
+
+const IRPF_BRACKETS: Array<{ limit: number; rate: number }> = [
+  { limit: 12_450, rate: 0.19 },
+  { limit: 20_200, rate: 0.24 },
+  { limit: 35_200, rate: 0.30 },
+  { limit: 60_000, rate: 0.37 },
+  { limit: 300_000, rate: 0.45 },
+  { limit: Infinity, rate: 0.47 },
+]
+
+const MINIMO_PERSONAL = 5_550
+
+function calcularCuotaIRPF(baseImponible: number): number {
+  let cuota = 0
+  let prev = 0
+  for (const { limit, rate } of IRPF_BRACKETS) {
+    if (baseImponible <= prev) break
+    const tramo = Math.min(baseImponible, limit) - prev
+    cuota += tramo * rate
+    prev = limit
+  }
+  return cuota
+}
+
+export interface ResultadoSalarioNeto {
+  seguridadSocial: number
+  irpf: number
+  netoAnual: number
+  netoMensual: number
+  tipoEfectivoIRPF: number
+}
+
+/**
+ * Calcula el salario neto mensual para un joven trabajador estándar en España.
+ * Asume: soltero, sin hijos, sin discapacidad, 12 pagas, contrato indefinido.
+ *
+ * @param brutoAnual - Salario bruto anual (€)
+ */
+export function calcularSalarioNeto(brutoAnual: number): ResultadoSalarioNeto {
+  if (!isFinite(brutoAnual) || brutoAnual <= 0) {
+    return { seguridadSocial: 0, irpf: 0, netoAnual: 0, netoMensual: 0, tipoEfectivoIRPF: 0 }
+  }
+
+  // 1. Seguridad Social empleado
+  const baseCotizacion = Math.min(brutoAnual, SS_MAX_BASE_ANUAL)
+  const seguridadSocial = baseCotizacion * SS_EMPLOYEE_RATE
+
+  // 2. Rendimiento neto del trabajo
+  const rendimientoNeto = brutoAnual - seguridadSocial - GASTOS_DEDUCIBLES
+
+  // 3. Reducción por rendimientos del trabajo (2024)
+  let reduccion = 0
+  if (rendimientoNeto <= 14_852) {
+    reduccion = 7_302
+  } else if (rendimientoNeto <= 17_673.52) {
+    reduccion = 7_302 - 2.00 * (rendimientoNeto - 14_852)
+  }
+
+  // 4. Base liquidable general
+  const baseLiquidable = Math.max(0, rendimientoNeto - reduccion)
+
+  // 5. Cuota íntegra – cuota del mínimo personal
+  const cuotaIntegra = calcularCuotaIRPF(baseLiquidable)
+  const cuotaMinimo = calcularCuotaIRPF(Math.min(MINIMO_PERSONAL, baseLiquidable))
+  const irpf = Math.max(0, cuotaIntegra - cuotaMinimo)
+
+  // 6. Neto
+  const netoAnual = brutoAnual - seguridadSocial - irpf
+  const netoMensual = netoAnual / 12
+  const tipoEfectivoIRPF = brutoAnual > 0 ? (irpf / brutoAnual) * 100 : 0
+
+  return { seguridadSocial, irpf, netoAnual, netoMensual, tipoEfectivoIRPF }
+}
+
+// --- Hipoteca ---
+
 export interface ResultadoHipoteca {
   capital: number
   cuotaMensual: number
