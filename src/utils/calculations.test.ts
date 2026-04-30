@@ -1,0 +1,136 @@
+import { describe, test, expect } from 'vitest'
+import { calcularHipoteca, calcularInversion, calcularPatrimonioNeto } from './calculations'
+
+describe('calcularHipoteca', () => {
+  test('calcula cuota mensual con interés positivo (caso estándar)', () => {
+    // 160k capital, 3% TIN, 30 años → ~€674.58/mes
+    const r = calcularHipoteca(200_000, 40_000, 3, 30)
+    expect(r.capital).toBe(160_000)
+    expect(r.cuotaMensual).toBeCloseTo(674.58, 0)
+    expect(r.totalPagado).toBeCloseTo(r.cuotaMensual * 360, 2)
+    expect(r.interesesTotales).toBeCloseTo(r.totalPagado - 160_000, 2)
+    expect(r.interesesTotales).toBeGreaterThan(0)
+  })
+
+  test('cuota mensual sin interés (TIN = 0)', () => {
+    const r = calcularHipoteca(120_000, 0, 0, 10)
+    expect(r.cuotaMensual).toBeCloseTo(1_000, 5) // 120000 / 120 = 1000
+    expect(r.totalPagado).toBeCloseTo(120_000, 2)
+    expect(r.interesesTotales).toBeCloseTo(0, 5)
+  })
+
+  test('sin entrada (entrada = 0)', () => {
+    const r = calcularHipoteca(200_000, 0, 3, 30)
+    expect(r.capital).toBe(200_000)
+    expect(r.cuotaMensual).toBeGreaterThan(0)
+    expect(r.interesesTotales).toBeGreaterThan(0)
+  })
+
+  test('plazo mínimo (1 año)', () => {
+    const r = calcularHipoteca(12_000, 0, 0, 1)
+    expect(r.cuotaMensual).toBeCloseTo(1_000, 5)
+    expect(r.totalPagado).toBeCloseTo(12_000, 2)
+  })
+
+  test('retorna ceros si la entrada supera el precio', () => {
+    const r = calcularHipoteca(100_000, 120_000, 3, 25)
+    expect(r.cuotaMensual).toBe(0)
+    expect(r.totalPagado).toBe(0)
+    expect(r.interesesTotales).toBe(0)
+  })
+
+  test('retorna ceros si el plazo es cero', () => {
+    const r = calcularHipoteca(200_000, 50_000, 3, 0)
+    expect(r.cuotaMensual).toBe(0)
+    expect(r.totalPagado).toBe(0)
+  })
+
+  test('retorna ceros si el plazo es negativo', () => {
+    const r = calcularHipoteca(200_000, 50_000, 3, -5)
+    expect(r.cuotaMensual).toBe(0)
+  })
+
+  test('intereses crecen con un tipo de interés mayor', () => {
+    const bajo = calcularHipoteca(200_000, 40_000, 1, 30)
+    const alto = calcularHipoteca(200_000, 40_000, 5, 30)
+    expect(alto.cuotaMensual).toBeGreaterThan(bajo.cuotaMensual)
+    expect(alto.interesesTotales).toBeGreaterThan(bajo.interesesTotales)
+  })
+})
+
+describe('calcularInversion', () => {
+  test('calcula valor futuro con interés positivo (caso estándar)', () => {
+    const r = calcularInversion(10_000, 200, 7, 20)
+    const capitalInvertido = 10_000 + 200 * 240
+    expect(r.capitalInvertido).toBe(capitalInvertido)
+    expect(r.valorFinal).toBeGreaterThan(capitalInvertido)
+    expect(r.interesesGenerados).toBeCloseTo(r.valorFinal - capitalInvertido, 2)
+    expect(r.interesesGenerados).toBeGreaterThan(0)
+  })
+
+  test('sin interés (TIN = 0)', () => {
+    const r = calcularInversion(5_000, 100, 0, 10)
+    expect(r.valorFinal).toBeCloseTo(5_000 + 100 * 120, 2)
+    expect(r.interesesGenerados).toBeCloseTo(0, 5)
+  })
+
+  test('sin capital inicial, solo aportaciones mensuales', () => {
+    const r = calcularInversion(0, 300, 5, 10)
+    expect(r.capitalInvertido).toBe(300 * 120)
+    expect(r.valorFinal).toBeGreaterThan(r.capitalInvertido)
+  })
+
+  test('con capital inicial y sin aportaciones mensuales', () => {
+    const r = calcularInversion(10_000, 0, 6, 10)
+    expect(r.capitalInvertido).toBe(10_000)
+    expect(r.valorFinal).toBeGreaterThan(10_000)
+  })
+
+  test('plazo cero retorna el capital inicial sin intereses', () => {
+    const r = calcularInversion(5_000, 200, 7, 0)
+    expect(r.valorFinal).toBe(5_000)
+    expect(r.capitalInvertido).toBe(5_000)
+    expect(r.interesesGenerados).toBe(0)
+  })
+
+  test('valor futuro crece con mayor tipo de interés', () => {
+    const bajo = calcularInversion(10_000, 200, 3, 20)
+    const alto = calcularInversion(10_000, 200, 8, 20)
+    expect(alto.valorFinal).toBeGreaterThan(bajo.valorFinal)
+    expect(alto.interesesGenerados).toBeGreaterThan(bajo.interesesGenerados)
+  })
+
+  test('retorna ceros para capital inicial negativo', () => {
+    const r = calcularInversion(-1_000, 200, 7, 10)
+    expect(r.valorFinal).toBe(0)
+    expect(r.capitalInvertido).toBe(0)
+    expect(r.interesesGenerados).toBe(0)
+  })
+
+  test('retorna ceros para aportación mensual negativa', () => {
+    const r = calcularInversion(5_000, -100, 7, 10)
+    expect(r.valorFinal).toBe(0)
+  })
+})
+
+describe('calcularPatrimonioNeto', () => {
+  test('patrimonio positivo', () => {
+    expect(calcularPatrimonioNeto(300_000, 150_000)).toBe(150_000)
+  })
+
+  test('patrimonio negativo (deudas superan activos)', () => {
+    expect(calcularPatrimonioNeto(50_000, 80_000)).toBe(-30_000)
+  })
+
+  test('patrimonio cero (activos igual a pasivos)', () => {
+    expect(calcularPatrimonioNeto(100_000, 100_000)).toBe(0)
+  })
+
+  test('sin deudas', () => {
+    expect(calcularPatrimonioNeto(200_000, 0)).toBe(200_000)
+  })
+
+  test('sin activos', () => {
+    expect(calcularPatrimonioNeto(0, 50_000)).toBe(-50_000)
+  })
+})

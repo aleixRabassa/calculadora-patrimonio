@@ -11,21 +11,28 @@ npm run dev        # dev server at http://localhost:5173 (HMR)
 npm run build      # tsc -b && vite build → dist/
 npm run lint       # eslint on all .ts/.tsx files
 npm run preview    # preview the production build locally
+npm run test       # run all tests once (Vitest)
+npm run test:watch # run tests in watch mode
 
 # Docker (production, served by nginx on port 8080)
 docker-compose up --build
 ```
 
-No test framework is configured. Do not add tests unless explicitly requested.
+Tests use **Vitest** (Vite-native, Jest-compatible API). Import explicitly from `'vitest'` — do not rely on globals. Pure calculation tests use `environment: 'node'`; component tests will need `environment: 'jsdom'` (set per-file with `@vitest-environment jsdom` if needed). Test files live alongside the code they test (`*.test.ts` / `*.test.tsx`).
 
 ## Architecture
 
 ```
 src/
   hooks/          # Reusable hooks (no components here)
+  utils/
+    calculations.ts       # ALL financial calculation logic (pure functions, no React)
+    calculations.test.ts  # ALL calculation tests (Vitest)
   App.tsx         # Root component
   main.tsx        # ReactDOM entry point, wraps App in StrictMode
 ```
+
+All financial logic (hipoteca, inversión, patrimonio neto) must live in `src/utils/calculations.ts` as pure functions. No calculation logic in components or hooks — components call these functions and display results. Every function in `calculations.ts` must have corresponding tests in `calculations.test.ts`. **Tests are only for calculation logic — do not write tests for components, hooks, or any other code.**
 
 All user state is persisted via the `useLocalStorage` hook. There is no global store — each calculator section owns its own localStorage key.
 
@@ -38,6 +45,18 @@ const [hipoteca, setHipoteca] = useLocalStorage('hipoteca', { precio: 0, interes
 ```
 
 Keys should be stable, namespaced strings (e.g. `'calc.hipoteca'`, `'calc.inversion'`).
+
+## Project Skills
+
+The following skills are installed under `.agents/skills/` and must be followed:
+
+| Skill | Scope |
+|---|---|
+| `jest-react-testing` | Writing and configuring React/hook/utility tests |
+| `accelint-react-testing` | React testing best practices (query priority, userEvent, no implementation details) |
+| `vercel-react-best-practices` | React performance and rendering patterns |
+| `vercel-react-view-transitions` | View Transition API for animations and page transitions |
+| `frontend-design` | UI component quality and design standards |
 
 ## Design Philosophy
 
