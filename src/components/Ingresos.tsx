@@ -1,11 +1,12 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Area, ComposedChart, Line, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { calcularSalarioNeto } from '../utils/calculations'
+import { calcularSalarioNeto, calcularAhorroInicialEfectivo } from '../utils/calculations'
 import type { Country } from '../utils/calculations'
 import './Ingresos.css'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
+const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 interface SubidaSalarial {
   id: string
@@ -19,6 +20,12 @@ interface GastoMensual {
   valor: number
 }
 
+interface GastoExtraordinario {
+  id: string
+  descripcion: string
+  importe: number
+}
+
 // Legacy shape used only for one-time migration
 interface LegacyIngresosState {
   gastosFijos?: number
@@ -27,6 +34,7 @@ interface LegacyIngresosState {
 interface IngresosState {
   brutoAnual: number
   gastos: GastoMensual[]
+  gastosExtraordinarios: GastoExtraordinario[]
   ahorroInicial: number
   subidas: SubidaSalarial[]
   country: Country
@@ -43,6 +51,7 @@ const DEFAULT_STATE: IngresosState = {
     { id: 'gasto-hipoteca', descripcion: 'Entrada hipoteca', valor: 1_370 },
     { id: 'gasto-gastos', descripcion: 'Gastos', valor: 250 },
   ],
+  gastosExtraordinarios: [],
   ahorroInicial: 0,
   country: 'spain',
   subidas: (() => {
@@ -122,6 +131,7 @@ export function Ingresos() {
   const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '2027-11-01')
   const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', 100_000)
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)
+  const [gastosExtraordinariosExpanded, setGastosExtraordinariosExpanded] = useState<boolean>(false)
 
   // One-time migration: if old state has gastosFijos but no gastos, convert it
   useEffect(() => {
@@ -134,6 +144,10 @@ export function Ingresos() {
   const gastosList = state.gastos ?? []
   const totalGastos = gastosList.reduce((sum, g) => sum + g.valor, 0)
 
+  const gastosExtraordinariosLista = state.gastosExtraordinarios ?? []
+  const totalGastosExtraordinarios = gastosExtraordinariosLista.reduce((sum, g) => sum + g.importe, 0)
+  const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(state.ahorroInicial, totalGastosExtraordinarios)
+
   const netoInfo = calcularSalarioNeto(state.brutoAnual, state.country ?? 'spain')
   const ahorroMensual = netoInfo.netoMensual - totalGastos
 
@@ -141,7 +155,8 @@ export function Ingresos() {
   const fullProjection = useMemo(() => {
     const subidasOrdenadas = [...state.subidas].sort((a, b) => a.mes - b.mes)
     const data: ChartPoint[] = []
-    let ahorroAcum = state.ahorroInicial
+    const gastosExtraordTotal = (state.gastosExtraordinarios ?? []).reduce((sum, g) => sum + g.importe, 0)
+    let ahorroAcum = calcularAhorroInicialEfectivo(state.ahorroInicial, gastosExtraordTotal)
     let brutoActual = state.brutoAnual
     const gastosMensuales = (state.gastos ?? []).reduce((sum, g) => sum + g.valor, 0)
 
@@ -163,7 +178,7 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.gastos, state.ahorroInicial, state.subidas, state.country])
+  }, [state.brutoAnual, state.gastos, state.gastosExtraordinarios, state.ahorroInicial, state.subidas, state.country])
 
   const chartData = useMemo(
     () => fullProjection.slice(0, horizonYears * 12 + 1),
@@ -219,6 +234,27 @@ export function Ingresos() {
     setState(prev => ({
       ...prev,
       gastos: (prev.gastos ?? []).map(g => g.id === id ? { ...g, [field]: value } : g),
+    }))
+  }
+
+  const addGastoExtraordinario = () => {
+    setState(prev => ({
+      ...prev,
+      gastosExtraordinarios: [...(prev.gastosExtraordinarios ?? []), { id: crypto.randomUUID(), descripcion: '', importe: 0 }],
+    }))
+  }
+
+  const removeGastoExtraordinario = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      gastosExtraordinarios: (prev.gastosExtraordinarios ?? []).filter(g => g.id !== id),
+    }))
+  }
+
+  const updateGastoExtraordinario = (id: string, field: 'descripcion' | 'importe', value: string | number) => {
+    setState(prev => ({
+      ...prev,
+      gastosExtraordinarios: (prev.gastosExtraordinarios ?? []).map(g => g.id === id ? { ...g, [field]: value } : g),
     }))
   }
 
@@ -309,7 +345,7 @@ export function Ingresos() {
           <label className="computed-sublabel">Salario neto anual</label>
           <div className="computed-value">
             {fmt(netoInfo.netoAnual)} €/año
-            <span className="detail">IRPF efectivo: {netoInfo.tipoEfectivoIRPF.toFixed(1)}% · Total retenido: {fmt(netoInfo.irpf + netoInfo.seguridadSocial)} €</span>
+            <span className="detail">IRPF efectivo: {fmtPct(netoInfo.tipoEfectivoIRPF)}% · Total retenido: {fmt(netoInfo.irpf + netoInfo.seguridadSocial)} €</span>
           </div>
         </div>
 
@@ -358,8 +394,53 @@ export function Ingresos() {
           )}
         </div>
 
+        <div className="gastos">
+          <button
+            type="button"
+            className="gastos__header"
+            onClick={() => setGastosExtraordinariosExpanded(prev => !prev)}
+            aria-expanded={gastosExtraordinariosExpanded}
+          >
+            <div className="gastos__title">
+              <h3>Gastos extraordinarios</h3>
+              <span className="gastos__total">{fmt(totalGastosExtraordinarios)} €</span>
+            </div>
+            <span className={`gastos__toggle${gastosExtraordinariosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
+          </button>
+          {gastosExtraordinariosExpanded && (
+            <div className="gastos__body">
+              {gastosExtraordinariosLista.length === 0 && (
+                <p className="gastos__empty">Sin gastos añadidos</p>
+              )}
+              {gastosExtraordinariosLista.map(gasto => (
+                <div key={gasto.id} className="gasto-row">
+                  <input
+                    type="text"
+                    className="gasto-desc"
+                    placeholder="Descripción"
+                    value={gasto.descripcion}
+                    onChange={e => updateGastoExtraordinario(gasto.id, 'descripcion', e.target.value)}
+                  />
+                  <div className="input-group gasto-value">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={gasto.importe}
+                      onChange={e => updateGastoExtraordinario(gasto.id, 'importe', Number(e.target.value))}
+                    />
+                    <span className="suffix">€</span>
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => removeGastoExtraordinario(gasto.id)}>✕</button>
+                </div>
+              ))}
+              <button type="button" className="btn-add gastos__add" onClick={addGastoExtraordinario}>+ Añadir gasto</button>
+            </div>
+          )}
+        </div>
+
         <div className="field">
-          <label htmlFor="ahorroInicial">Ahorro inicial</label>
+          <label htmlFor="ahorroInicial">Ahorro actual</label>
           <div className="input-group">
             <input
               id="ahorroInicial"
@@ -372,6 +453,16 @@ export function Ingresos() {
             <span className="suffix">€</span>
           </div>
         </div>
+
+        {totalGastosExtraordinarios > 0 && (
+          <div className="field field--computed">
+            <label>Ahorro actual efectivo</label>
+            <div className={`computed-value ${ahorroInicialEfectivo < 0 ? 'computed-value--negative' : ''}`}>
+              {fmt(ahorroInicialEfectivo)} €
+              <span className="detail">Ahorro actual {fmt(state.ahorroInicial)} € − Gastos extraordinarios {fmt(totalGastosExtraordinarios)} €</span>
+            </div>
+          </div>
+        )}
 
         <div className="field field--computed">
           <label>Ahorro mensual</label>
@@ -418,7 +509,7 @@ export function Ingresos() {
                       />
                       {hints && (
                         <span className={`subida-hint ${hints.pctChange >= 0 ? 'subida-hint--pos' : 'subida-hint--neg'}`}>
-                          {hints.pctChange >= 0 ? '+' : ''}{hints.pctChange.toFixed(1)}%
+                          {hints.pctChange >= 0 ? '+' : ''}{fmtPct(hints.pctChange)}%
                         </span>
                       )}
                     </div>
@@ -449,7 +540,7 @@ export function Ingresos() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 0, bottom: 8, left: 0 }}>
             <XAxis
               dataKey="mes"
               tickFormatter={m => `${Math.floor(m / 12)}a`}

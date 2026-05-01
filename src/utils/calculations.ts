@@ -199,3 +199,13 @@ export function calcularInversion(
 export function calcularPatrimonioNeto(activos: number, pasivos: number): number {
   return activos - pasivos
 }
+
+/**
+ * Calcula el ahorro inicial efectivo tras descontar gastos extraordinarios (pagos únicos).
+ *
+ * @param ahorroInicial - Ahorro inicial disponible (€)
+ * @param totalGastosExtraordinarios - Suma de todos los gastos extraordinarios (€)
+ */
+export function calcularAhorroInicialEfectivo(ahorroInicial: number, totalGastosExtraordinarios: number): number {
+  return ahorroInicial - totalGastosExtraordinarios
+}

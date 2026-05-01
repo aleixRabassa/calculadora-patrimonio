@@ -95,7 +95,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 ```
 
 - **Computed/display values**: always use `fmt(value)` — never raw `.toFixed(0)`.
-- **Number inputs**: use `type="text"` with a formatting/parsing layer so the displayed value also uses dots for thousands. Do **not** use `type="number"` for monetary fields.
+- **Number inputs**: use `type="number"` as-is. Browsers do not reliably show thousands separators in number inputs; this is acceptable.
 - **Chart axes**: exempt — compact labels (e.g. `14k€`) are acceptable there.
 - **Percentages**: use `.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })` so decimals render with a comma (e.g. `18,3%`). Plain `.toFixed(1)` is only acceptable when the value is embedded in a non-locale-sensitive context.
 

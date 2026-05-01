@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto } from './calculations'
+import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto } from './calculations'
 
 describe('calcularSalarioNeto - Andorra', () => {
   test('retorna ceros para bruto inválido', () => {
@@ -298,5 +298,31 @@ describe('calcularPatrimonioNeto', () => {
 
   test('sin activos', () => {
     expect(calcularPatrimonioNeto(0, 50_000)).toBe(-50_000)
+  })
+})
+
+describe('calcularAhorroInicialEfectivo', () => {
+  test('descuenta gastos extraordinarios del ahorro inicial', () => {
+    expect(calcularAhorroInicialEfectivo(50_000, 15_000)).toBe(35_000)
+  })
+
+  test('sin gastos extraordinarios devuelve el ahorro inicial intacto', () => {
+    expect(calcularAhorroInicialEfectivo(50_000, 0)).toBe(50_000)
+  })
+
+  test('gastos superiores al ahorro producen resultado negativo', () => {
+    expect(calcularAhorroInicialEfectivo(5_000, 8_000)).toBe(-3_000)
+  })
+
+  test('ahorro inicial y gastos a cero devuelve cero', () => {
+    expect(calcularAhorroInicialEfectivo(0, 0)).toBe(0)
+  })
+
+  test('ahorro inicial cero con gastos produce negativo', () => {
+    expect(calcularAhorroInicialEfectivo(0, 3_000)).toBe(-3_000)
+  })
+
+  test('gastos exactamente iguales al ahorro dan cero', () => {
+    expect(calcularAhorroInicialEfectivo(10_000, 10_000)).toBe(0)
   })
 })
