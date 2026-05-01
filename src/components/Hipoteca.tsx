@@ -30,6 +30,7 @@ interface HipotecaState {
   interestRate: number
   annualContribution?: number
   extraordinaryContributions: ExtraordinaryContribution[]
+  amortizationType: 'plazo' | 'cuota'
 }
 
 const DEFAULT_STATE: HipotecaState = {
@@ -40,6 +41,7 @@ const DEFAULT_STATE: HipotecaState = {
   termYears: 25,
   interestRate: 3,
   extraordinaryContributions: [],
+  amortizationType: 'plazo',
 }
 
 // Minimal Ingresos state shape needed to compute the default monthly savings
@@ -58,6 +60,8 @@ interface ChartPoint {
   outstandingPrincipalBase?: number
   accumulatedPrincipal: number
   accumulatedInterest: number
+  accumulatedPrincipalBase?: number
+  accumulatedInterestBase?: number
 }
 
 interface ChartTooltipProps {
@@ -77,6 +81,8 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
   const outstandingBase = payload.find(p => p.dataKey === 'outstandingPrincipalBase')?.value
   const principal = payload.find(p => p.dataKey === 'accumulatedPrincipal')?.value
   const interest = payload.find(p => p.dataKey === 'accumulatedInterest')?.value
+  const principalBase = payload.find(p => p.dataKey === 'accumulatedPrincipalBase')?.value
+  const interestBase = payload.find(p => p.dataKey === 'accumulatedInterestBase')?.value
 
   const now = new Date()
   const date = new Date(now.getFullYear(), now.getMonth() + point.month, 1)
@@ -97,9 +103,16 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: '#e53e3e' }} />
           <span className="chart-tooltip__label">
-            Capital pendiente{hasContributions ? ' (con amort.)' : ''}
+            Capital pendiente
           </span>
           <span className="chart-tooltip__value">{fmt(outstanding)} €</span>
+        </div>
+      )}
+      {hasContributions && typeof principalBase === 'number' && (
+        <div className="chart-tooltip__row">
+          <span className="chart-tooltip__dot" style={{ background: 'rgba(99, 200, 132, 0.4)' }} />
+          <span className="chart-tooltip__label">Capital amortizado (sin amort.)</span>
+          <span className="chart-tooltip__value">{fmt(principalBase)} €</span>
         </div>
       )}
       {typeof principal === 'number' && (
@@ -107,6 +120,13 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
           <span className="chart-tooltip__dot" style={{ background: 'rgb(99, 200, 132)' }} />
           <span className="chart-tooltip__label">Capital amortizado</span>
           <span className="chart-tooltip__value">{fmt(principal)} €</span>
+        </div>
+      )}
+      {hasContributions && typeof interestBase === 'number' && (
+        <div className="chart-tooltip__row">
+          <span className="chart-tooltip__dot" style={{ background: 'rgba(246, 173, 85, 0.4)' }} />
+          <span className="chart-tooltip__label">Intereses pagados (sin amort.)</span>
+          <span className="chart-tooltip__value">{fmt(interestBase)} €</span>
         </div>
       )}
       {typeof interest === 'number' && (
@@ -162,17 +182,44 @@ export function Hipoteca() {
       annualExtraPayment,
       0,
       new Date().getMonth(),
+      state.amortizationType,
     )
-  }, [hasContributions, hipoteca.capital, state.interestRate, state.termYears, annualExtraPayment])
+  }, [hasContributions, hipoteca.capital, state.interestRate, state.termYears, annualExtraPayment, state.amortizationType])
 
   // Savings vs original schedule
   const payoffInfo = useMemo(() => {
     if (!enhancedSchedule || enhancedSchedule.length === 0) return null
     const lastPoint = enhancedSchedule[enhancedSchedule.length - 1]
-    const monthsSaved = state.termYears * 12 - lastPoint.month
     const interestSaved = hipoteca.interesesTotales - lastPoint.accumulatedInterest
-    return { enhancedMonths: lastPoint.month, monthsSaved, interestSaved }
-  }, [enhancedSchedule, state.termYears, hipoteca.interesesTotales])
+
+    if (state.amortizationType === 'cuota') {
+      const loanStartMonth = new Date().getMonth()
+      const monthsToFirstJan = (12 - loanStartMonth) % 12 || 12
+      const n = state.termYears * 12
+      const r = state.interestRate / 100 / 12
+
+      // Find the last January where outstanding > 0 after lump sum (the last active recalculated payment)
+      let finalPayment: number | null = null
+      for (let i = enhancedSchedule.length - 1; i >= 0; i--) {
+        const m = enhancedSchedule[i].month
+        if (m >= monthsToFirstJan && (m - monthsToFirstJan) % 12 === 0) {
+          const outstanding = enhancedSchedule[i].outstandingPrincipal
+          const remaining = n - m
+          if (remaining > 0 && outstanding > 0.01) {
+            finalPayment = r === 0
+              ? outstanding / remaining
+              : (outstanding * r * Math.pow(1 + r, remaining)) / (Math.pow(1 + r, remaining) - 1)
+            break
+          }
+          // outstanding = 0 here (lump sum cleared the loan): keep searching for the previous January
+        }
+      }
+      return { enhancedMonths: lastPoint.month, monthsSaved: 0, interestSaved, finalPayment }
+    }
+
+    const monthsSaved = state.termYears * 12 - lastPoint.month
+    return { enhancedMonths: lastPoint.month, monthsSaved, interestSaved, finalPayment: null }
+  }, [enhancedSchedule, state.termYears, hipoteca.interesesTotales, state.amortizationType, state.interestRate])
 
   const chartData: ChartPoint[] = useMemo(() => {
     const baseSchedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
@@ -195,6 +242,8 @@ export function Hipoteca() {
         outstandingPrincipalBase: basePoint.outstandingPrincipal,
         accumulatedPrincipal: enhPoint ? enhPoint.accumulatedPrincipal : lastEnh.accumulatedPrincipal,
         accumulatedInterest: enhPoint ? enhPoint.accumulatedInterest : lastEnh.accumulatedInterest,
+        accumulatedPrincipalBase: basePoint.accumulatedPrincipal,
+        accumulatedInterestBase: basePoint.accumulatedInterest,
       }
     })
   }, [hipoteca.capital, state.interestRate, state.termYears, enhancedSchedule])
@@ -369,6 +418,26 @@ export function Hipoteca() {
           </div>
         </div>
 
+        <div className="amortization-type">
+          <h3>Amortizaciones</h3>
+          <div className="segmented-control">
+            <button
+              type="button"
+              className={`segmented-control__option${state.amortizationType !== 'cuota' ? ' segmented-control__option--active' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, amortizationType: 'plazo' }))}
+            >
+              Amortizar plazo
+            </button>
+            <button
+              type="button"
+              className={`segmented-control__option${state.amortizationType === 'cuota' ? ' segmented-control__option--active' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, amortizationType: 'cuota' }))}
+            >
+              Amortizar cuota
+            </button>
+          </div>
+        </div>
+
         {/* Aportaciones anuales */}
         <div className="field">
           <div className="field__label-row">
@@ -452,7 +521,14 @@ export function Hipoteca() {
       </div>
 
       <div className="hipoteca__charts">
-        <h3>Amortización a {state.termYears} años</h3>
+        <h3>
+          Amortización a {state.termYears} años
+          {hasContributions && (
+            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text)', marginLeft: 8 }}>
+              · {state.amortizationType === 'cuota' ? 'reduciendo cuota' : 'reduciendo plazo'}
+            </span>
+          )}
+        </h3>
         {chartData.length > 0 && (
           <ResponsiveContainer width="100%" height={320}>
             <ComposedChart data={chartData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
@@ -486,23 +562,14 @@ export function Hipoteca() {
               <Legend
                 formatter={v => {
                   if (v === 'outstandingPrincipalBase') return 'Capital pendiente (sin amort.)'
-                  if (v === 'outstandingPrincipal') return hasContributions ? 'Capital pendiente (con amort.)' : 'Capital pendiente'
+                  if (v === 'outstandingPrincipal') return 'Capital pendiente'
+                  if (v === 'accumulatedPrincipalBase') return 'Capital amortizado (sin amort.)'
                   if (v === 'accumulatedPrincipal') return 'Capital amortizado'
+                  if (v === 'accumulatedInterestBase') return 'Intereses pagados (sin amort.)'
                   return 'Intereses pagados'
                 }}
                 wrapperStyle={{ fontSize: 14, textAlign: 'center', width: '100%', left: 0 }}
               />
-              {hasContributions && (
-                <Line
-                  type="monotone"
-                  dataKey="outstandingPrincipalBase"
-                  stroke="rgba(229, 62, 62, 0.35)"
-                  strokeWidth={1.5}
-                  strokeDasharray="5 3"
-                  dot={false}
-                  legendType="line"
-                />
-              )}
               <Area
                 type="monotone"
                 dataKey="outstandingPrincipal"
@@ -527,24 +594,72 @@ export function Hipoteca() {
                 strokeWidth={2}
                 dot={false}
               />
+              {hasContributions && (
+                <Line
+                  type="monotone"
+                  dataKey="outstandingPrincipalBase"
+                  stroke="rgba(229, 62, 62, 0.35)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  legendType="line"
+                />
+              )}
+              {hasContributions && (
+                <Line
+                  type="monotone"
+                  dataKey="accumulatedPrincipalBase"
+                  stroke="rgba(99, 200, 132, 0.4)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  legendType="line"
+                />
+              )}
+              {hasContributions && (
+                <Line
+                  type="monotone"
+                  dataKey="accumulatedInterestBase"
+                  stroke="rgba(246, 173, 85, 0.4)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  legendType="line"
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         )}
 
         {/* Savings summary */}
-        {payoffInfo && payoffInfo.monthsSaved > 0 && (
+        {payoffInfo && (payoffInfo.monthsSaved > 0 || (state.amortizationType === 'cuota' && payoffInfo.interestSaved > 0)) && (
           <div className="field field--computed hipoteca__savings">
-            <label>Con aportaciones periódicas</label>
+            <label>
+              Con aportaciones periódicas ({state.amortizationType === 'cuota' ? 'cuota' : 'plazo'})
+            </label>
             <div className="computed-value">
-              {Math.floor(payoffInfo.enhancedMonths / 12)} años
-              {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
-              <span className="detail hipoteca__savings-detail">
-                {payoffInfo.monthsSaved >= 12
-                  ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
-                  : `${payoffInfo.monthsSaved} meses antes`}
-                {' · '}
-                {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
-              </span>
+              {state.amortizationType === 'cuota' ? (
+                <>
+                  {fmt(payoffInfo.finalPayment ?? hipoteca.cuotaMensual)} €/mes
+                  <span className="detail hipoteca__savings-detail">
+                    {fmt(Math.max(0, hipoteca.cuotaMensual - (payoffInfo.finalPayment ?? hipoteca.cuotaMensual)))} €/mes menos en cuota
+                    {' · '}
+                    {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
+                  </span>
+                </>
+              ) : (
+                <>
+                  {Math.floor(payoffInfo.enhancedMonths / 12)} años
+                  {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
+                  <span className="detail hipoteca__savings-detail">
+                    {payoffInfo.monthsSaved >= 12
+                      ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
+                      : `${payoffInfo.monthsSaved} meses antes`}
+                    {' · '}
+                    {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
+                  </span>
+                </>
+              )}
             </div>
           </div>
         )}

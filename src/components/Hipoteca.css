@@ -157,3 +157,48 @@
 .hipoteca__charts .recharts-area-curve {
   pointer-events: none;
 }
+
+/* Amortization type selector */
+.amortization-type {
+  margin-bottom: 16px;
+}
+
+.amortization-type h3 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.segmented-control {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented-control__option {
+  flex: 1;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--sans, sans-serif);
+  transition: background 0.15s, color 0.15s;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--border);
+  }
+
+  &:hover:not(.segmented-control__option--active) {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.segmented-control__option--active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}

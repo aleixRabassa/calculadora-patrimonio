@@ -442,3 +442,61 @@ describe('generateAmortizationScheduleWithContributions', () => {
     expect(juneAt7.outstandingPrincipal).toBeLessThan(baseAt7.outstandingPrincipal)
   })
 })
+
+describe('generateAmortizationScheduleWithContributions - cuota mode', () => {
+  test('cuota mode runs for full term when contributions are zero', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'cuota')
+    expect(cuota.length).toBe(base.length)
+  })
+
+  test('cuota mode outstanding reaches zero at end of term', () => {
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'cuota')
+    const last = cuota[cuota.length - 1]
+    expect(last.outstandingPrincipal).toBeCloseTo(0, 0)
+  })
+
+  test('cuota mode accumulated interest is less than base (contributions reduce interest paid)', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'cuota')
+    const baseLast = base[base.length - 1]
+    const cuotaLast = cuota[cuota.length - 1]
+    expect(cuotaLast.accumulatedInterest).toBeLessThan(baseLast.accumulatedInterest)
+  })
+
+  test('cuota mode outstanding is lower than base at every point after first contribution', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'cuota')
+    // After month 12 (first January), cuota outstanding should be below base
+    for (let i = 13; i < cuota.length; i++) {
+      expect(cuota[i].outstandingPrincipal).toBeLessThanOrEqual(base[i].outstandingPrincipal + 0.01)
+    }
+  })
+
+  test('cuota mode reduces term less than plazo mode (same contributions)', () => {
+    const plazo = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'plazo')
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'cuota')
+    // plazo pays off earlier → shorter schedule
+    expect(plazo.length).toBeLessThan(cuota.length)
+  })
+
+  test('cuota mode with zero contributions produces same result as base', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'cuota')
+    expect(cuota.length).toBe(base.length)
+    const baseLast = base[base.length - 1]
+    const cuotaLast = cuota[cuota.length - 1]
+    expect(cuotaLast.accumulatedInterest).toBeCloseTo(baseLast.accumulatedInterest, 0)
+  })
+
+  test('cuota mode saves less interest than plazo mode for same contributions', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const baseTotalInterest = base[base.length - 1].accumulatedInterest
+    const plazo = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'plazo')
+    const cuota = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0, 'cuota')
+    const plazoSaved = baseTotalInterest - plazo[plazo.length - 1].accumulatedInterest
+    const cuotaSaved = baseTotalInterest - cuota[cuota.length - 1].accumulatedInterest
+    // plazo saves more interest (shorter loan duration)
+    expect(plazoSaved).toBeGreaterThan(cuotaSaved)
+  })
+})

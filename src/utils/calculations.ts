@@ -262,6 +262,7 @@ export function generateAmortizationSchedule(
  * @param annualExtraPayment - Annual lump sum applied each January (periodic monthly × 12 + periodic annual)
  * @param extraFirstJan - One-time extraordinary payment applied only on the first January
  * @param loanStartMonth - Month the loan starts (0 = January, 11 = December)
+ * @param amortizationType - 'plazo': keep payment, reduce term (default); 'cuota': keep term, reduce payment
  */
 export function generateAmortizationScheduleWithContributions(
   capital: number,
@@ -270,6 +271,7 @@ export function generateAmortizationScheduleWithContributions(
   annualExtraPayment: number,
   extraFirstJan: number,
   loanStartMonth: number,
+  amortizationType: 'plazo' | 'cuota' = 'plazo',
 ): AmortizationPoint[] {
   if (
     !isFinite(capital) || capital <= 0 ||
@@ -282,7 +284,7 @@ export function generateAmortizationScheduleWithContributions(
   const n = termYears * 12
   const r = interestTIN / 100 / 12
 
-  const monthlyPayment = r === 0
+  let monthlyPayment = r === 0
     ? capital / n
     : (capital * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
 
@@ -312,6 +314,16 @@ export function generateAmortizationScheduleWithContributions(
         const actualLumpSum = Math.min(lumpSum, outstanding)
         outstanding -= actualLumpSum
         accPrincipal += actualLumpSum
+
+        // In cuota mode: recalculate monthly payment for the remaining fixed term
+        if (amortizationType === 'cuota' && outstanding > 0.01) {
+          const remaining = n - m
+          if (remaining > 0) {
+            monthlyPayment = r === 0
+              ? outstanding / remaining
+              : (outstanding * r * Math.pow(1 + r, remaining)) / (Math.pow(1 + r, remaining) - 1)
+          }
+        }
       }
     }
 
