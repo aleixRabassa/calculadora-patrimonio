@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Area, ComposedChart, Line, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
+import { Area, ComposedChart, Line, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularSalarioNeto } from '../utils/calculations'
 import './Ingresos.css'
@@ -462,14 +462,6 @@ export function Ingresos() {
               strokeWidth={2}
             />
             {dateTargetResult?.type === 'found' && dateTargetResult.inChartRange && (
-              <ReferenceLine
-                x={dateTargetResult.months}
-                stroke="#f6ad55"
-                strokeDasharray="4 4"
-                strokeOpacity={0.8}
-              />
-            )}
-            {dateTargetResult?.type === 'found' && dateTargetResult.inChartRange && (
               <ReferenceDot
                 yAxisId="savings"
                 x={dateTargetResult.months}
@@ -478,14 +470,7 @@ export function Ingresos() {
                 fill="#f6ad55"
                 stroke="white"
                 strokeWidth={2}
-              />
-            )}
-            {savingsTargetResult?.type === 'found' && savingsTargetResult.inChartRange && (
-              <ReferenceLine
-                x={savingsTargetResult.mes}
-                stroke="#4ecdc4"
-                strokeDasharray="4 4"
-                strokeOpacity={0.8}
+                className="goal-dot-animated"
               />
             )}
             {savingsTargetResult?.type === 'found' && savingsTargetResult.inChartRange && (
@@ -497,6 +482,7 @@ export function Ingresos() {
                 fill="#4ecdc4"
                 stroke="white"
                 strokeWidth={2}
+                className="goal-dot-animated"
               />
             )}
           </ComposedChart>

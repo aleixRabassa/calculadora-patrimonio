@@ -536,3 +536,11 @@ input[type="date"] {
   border-color: var(--accent-border);
   color: var(--accent);
 }
+
+.goal-dot-animated circle {
+  transition: cx 1500ms ease, cy 1500ms ease;
+}
+
+.goal-dot-animated .recharts-reference-dot-dot {
+  transition: cx 1500ms ease, cy 1500ms ease;
+}
