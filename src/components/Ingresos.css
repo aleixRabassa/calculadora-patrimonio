@@ -285,6 +285,52 @@ input[type="date"] {
   width: 100%;
 }
 
+.subida-input-overlay {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.subida-input-overlay input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.subida-input-overlay--date input {
+  padding-right: 100px;
+}
+
+.subida-input-overlay--salary input {
+  padding-right: 52px;
+}
+
+.subida-hint {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.subida-hint--date {
+  color: var(--text);
+  opacity: 0.55;
+}
+
+.subida-hint--pos {
+  color: #48bb78;
+  font-weight: 600;
+}
+
+.subida-hint--neg {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
 .btn-remove {
   font-size: 16px;
   width: 32px;

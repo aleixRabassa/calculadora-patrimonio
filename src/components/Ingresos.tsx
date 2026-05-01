@@ -158,6 +158,22 @@ export function Ingresos() {
     }))
   }
 
+  const subidaHints = useMemo(() => {
+    const sorted = [...state.subidas].sort((a, b) => a.mes - b.mes)
+    const today = new Date()
+    return Object.fromEntries(
+      sorted.map((subida, idx) => {
+        const prevBruto = idx === 0 ? state.brutoAnual : sorted[idx - 1].nuevoBrutoAnual
+        const pctChange = prevBruto > 0 ? ((subida.nuevoBrutoAnual - prevBruto) / prevBruto) * 100 : 0
+        const targetDate = new Date(today.getFullYear(), today.getMonth() + subida.mes, 1)
+        const rawLabel = targetDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+        const withoutDe = rawLabel.replace(' de ', ' ')
+        const dateLabel = withoutDe.charAt(0).toUpperCase() + withoutDe.slice(1)
+        return [subida.id, { dateLabel, pctChange }]
+      }),
+    )
+  }, [state.subidas, state.brutoAnual])
+
   const addSubida = () => {
     const sortedSubidas = [...state.subidas].sort((a, b) => a.mes - b.mes)
     const lastSubida = sortedSubidas[sortedSubidas.length - 1] ?? null
@@ -286,34 +302,47 @@ export function Ingresos() {
           {state.subidas.length === 0 && (
             <p className="subidas__empty">Sin subidas planificadas</p>
           )}
-          {state.subidas.map(subida => (
-            <div key={subida.id} className="subida-row">
-              <div className="subida-field">
-                <label>Mes</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={MAX_HORIZONTE_MESES}
-                  value={subida.mes}
-                  onChange={e => updateSubida(subida.id, 'mes', Number(e.target.value))}
-                />
-              </div>
-              <div className="subida-field">
-                <label>Nuevo bruto anual</label>
-                <div className="input-group">
-                  <input
-                    type="number"
-                    min={0}
-                    step={500}
-                    value={subida.nuevoBrutoAnual}
-                    onChange={e => updateSubida(subida.id, 'nuevoBrutoAnual', Number(e.target.value))}
-                  />
-                  <span className="suffix">€</span>
+          {state.subidas.map(subida => {
+            const hints = subidaHints[subida.id]
+            return (
+              <div key={subida.id} className="subida-row">
+                <div className="subida-field">
+                  <label>Mes</label>
+                  <div className="subida-input-overlay subida-input-overlay--date">
+                    <input
+                      type="number"
+                      min={1}
+                      max={MAX_HORIZONTE_MESES}
+                      value={subida.mes}
+                      onChange={e => updateSubida(subida.id, 'mes', Number(e.target.value))}
+                    />
+                    {hints && <span className="subida-hint subida-hint--date">{hints.dateLabel}</span>}
+                  </div>
                 </div>
+                <div className="subida-field">
+                  <label>Nuevo bruto anual</label>
+                  <div className="input-group">
+                    <div className="subida-input-overlay subida-input-overlay--salary">
+                      <input
+                        type="number"
+                        min={0}
+                        step={500}
+                        value={subida.nuevoBrutoAnual}
+                        onChange={e => updateSubida(subida.id, 'nuevoBrutoAnual', Number(e.target.value))}
+                      />
+                      {hints && (
+                        <span className={`subida-hint ${hints.pctChange >= 0 ? 'subida-hint--pos' : 'subida-hint--neg'}`}>
+                          {hints.pctChange >= 0 ? '+' : ''}{hints.pctChange.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    <span className="suffix">€</span>
+                  </div>
+                </div>
+                <button type="button" className="btn-remove" onClick={() => removeSubida(subida.id)}>✕</button>
               </div>
-              <button type="button" className="btn-remove" onClick={() => removeSubida(subida.id)}>✕</button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
