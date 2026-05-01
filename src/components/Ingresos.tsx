@@ -29,10 +29,16 @@ interface IngresosState {
 }
 
 const DEFAULT_STATE: IngresosState = {
-  brutoAnual: 25_000,
-  gastos: [{ id: 'gasto-default', descripcion: 'Gastos fijos', valor: 800 }],
-  ahorroInicial: 95_000,
-  subidas: [],
+  brutoAnual: 43_000,
+  gastos: [
+    { id: 'gasto-hipoteca', descripcion: 'Entrada hipoteca', valor: 1_370 },
+    { id: 'gasto-gastos', descripcion: 'Gastos', valor: 250 },
+  ],
+  ahorroInicial: 0,
+  subidas: [
+    { id: 'subida-1', mes: 12, nuevoBrutoAnual: 50_000 },
+    { id: 'subida-2', mes: 24, nuevoBrutoAnual: 55_000 },
+  ],
 }
 
 const MAX_HORIZONTE_MESES = 240 // 20 años
@@ -49,8 +55,8 @@ function xAxisInterval(years: number): number {
 export function Ingresos() {
   const [state, setState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_STATE)
   const [horizonYears, setHorizonYears] = useState<number>(5)
-  const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '')
-  const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', null)
+  const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '2027-11-01')
+  const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', 100_000)
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)
 
   // One-time migration: if old state has gastosFijos but no gastos, convert it
@@ -390,10 +396,9 @@ export function Ingresos() {
                 strokeWidth={2}
               />
             )}
-            {ahorroObjetivo != null && ahorroObjetivo > 0 && savingsTargetResult?.type === 'found' && savingsTargetResult.inChartRange && (
+            {savingsTargetResult?.type === 'found' && savingsTargetResult.inChartRange && (
               <ReferenceLine
-                yAxisId="savings"
-                y={ahorroObjetivo}
+                x={savingsTargetResult.mes}
                 stroke="#4ecdc4"
                 strokeDasharray="4 4"
                 strokeOpacity={0.8}
