@@ -1,7 +1,13 @@
-import { useMemo } from 'react'
-import { Area, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useMemo, useEffect } from 'react'
+import { Area, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { calcularHipoteca, generateAmortizationSchedule } from '../utils/calculations'
+import {
+  calcularHipoteca,
+  calcularSalarioNeto,
+  generateAmortizationSchedule,
+  generateAmortizationScheduleWithContributions,
+} from '../utils/calculations'
+import type { Country } from '../utils/calculations'
 import './Hipoteca.css'
 import './Ingresos.css'
 
@@ -15,6 +21,7 @@ interface HipotecaState {
   itpPct: number
   termYears: number
   interestRate: number
+  annualContribution: number
 }
 
 const DEFAULT_STATE: HipotecaState = {
@@ -24,12 +31,23 @@ const DEFAULT_STATE: HipotecaState = {
   itpPct: 10,
   termYears: 25,
   interestRate: 3,
+  annualContribution: 0,
 }
+
+// Minimal Ingresos state shape needed to compute the default monthly savings
+interface MinimalIngresosState {
+  brutoAnual: number
+  gastos?: Array<{ valor: number }>
+  country?: Country
+}
+
+const INGRESOS_FALLBACK: MinimalIngresosState = { brutoAnual: 43_000, gastos: [], country: 'spain' }
 
 interface ChartPoint {
   month: number
   label: string
   outstandingPrincipal: number
+  outstandingPrincipalBase?: number
   accumulatedPrincipal: number
   accumulatedInterest: number
 }
@@ -39,14 +57,16 @@ interface ChartTooltipProps {
   payload?: ReadonlyArray<{ dataKey?: unknown; value?: unknown }>
   label?: number
   chartData: ChartPoint[]
+  hasContributions: boolean
 }
 
-function HipotecaChartTooltip({ active, payload, label, chartData }: ChartTooltipProps) {
+function HipotecaChartTooltip({ active, payload, label, chartData, hasContributions }: ChartTooltipProps) {
   if (!active || !payload?.length || label == null) return null
   const point = chartData[label]
   if (!point) return null
 
   const outstanding = payload.find(p => p.dataKey === 'outstandingPrincipal')?.value
+  const outstandingBase = payload.find(p => p.dataKey === 'outstandingPrincipalBase')?.value
   const principal = payload.find(p => p.dataKey === 'accumulatedPrincipal')?.value
   const interest = payload.find(p => p.dataKey === 'accumulatedInterest')?.value
 
@@ -58,10 +78,19 @@ function HipotecaChartTooltip({ active, payload, label, chartData }: ChartToolti
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip__date">{timeLabel}</div>
+      {hasContributions && typeof outstandingBase === 'number' && (
+        <div className="chart-tooltip__row">
+          <span className="chart-tooltip__dot" style={{ background: 'rgba(229, 62, 62, 0.4)' }} />
+          <span className="chart-tooltip__label">Capital pendiente (sin amort.)</span>
+          <span className="chart-tooltip__value">{fmt(outstandingBase)} €</span>
+        </div>
+      )}
       {typeof outstanding === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: '#e53e3e' }} />
-          <span className="chart-tooltip__label">Capital pendiente</span>
+          <span className="chart-tooltip__label">
+            Capital pendiente{hasContributions ? ' (con amort.)' : ''}
+          </span>
           <span className="chart-tooltip__value">{fmt(outstanding)} €</span>
         </div>
       )}
@@ -86,6 +115,22 @@ function HipotecaChartTooltip({ active, payload, label, chartData }: ChartToolti
 export function Hipoteca() {
   const [state, setState] = useLocalStorage<HipotecaState>('calc.hipoteca', DEFAULT_STATE)
 
+  // Read Ingresos state to derive the default monthly savings
+  const [ingresosState] = useLocalStorage<MinimalIngresosState>('calc.ingresos', INGRESOS_FALLBACK)
+  const ingresosExpenses = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
+  const ingresosNet = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain')
+  const defaultAhorroMensual = Math.max(0, ingresosNet.netoMensual - ingresosExpenses)
+
+  // Migration: initialise contribution field when absent (new field on existing state).
+  useEffect(() => {
+    if (state.annualContribution == null) {
+      setState(prev => ({
+        ...prev,
+        annualContribution: Math.max(0, Math.round(defaultAhorroMensual * 12)),
+      }))
+    }
+  }, [state.annualContribution, setState, defaultAhorroMensual])
+
   const totalPrice = state.propertyPrice + state.parkingPrice
   const financedAmount = totalPrice * (state.financingPct / 100)
   const downPayment = totalPrice - financedAmount
@@ -95,14 +140,56 @@ export function Hipoteca() {
 
   const hipoteca = calcularHipoteca(totalPrice, downPayment, state.interestRate, state.termYears)
 
+  // Contribution totals
+  const annualExtraPayment = state.annualContribution ?? 0
+  const hasContributions = annualExtraPayment > 0
+
+  // Enhanced amortization schedule (with contributions applied annually on Jan 1st)
+  const enhancedSchedule = useMemo(() => {
+    if (!hasContributions || hipoteca.capital <= 0) return null
+    return generateAmortizationScheduleWithContributions(
+      hipoteca.capital,
+      state.interestRate,
+      state.termYears,
+      annualExtraPayment,
+      0,
+      new Date().getMonth(),
+    )
+  }, [hasContributions, hipoteca.capital, state.interestRate, state.termYears, annualExtraPayment])
+
+  // Savings vs original schedule
+  const payoffInfo = useMemo(() => {
+    if (!enhancedSchedule || enhancedSchedule.length === 0) return null
+    const lastPoint = enhancedSchedule[enhancedSchedule.length - 1]
+    const monthsSaved = state.termYears * 12 - lastPoint.month
+    const interestSaved = hipoteca.interesesTotales - lastPoint.accumulatedInterest
+    return { enhancedMonths: lastPoint.month, monthsSaved, interestSaved }
+  }, [enhancedSchedule, state.termYears, hipoteca.interesesTotales])
+
   const chartData: ChartPoint[] = useMemo(() => {
-    const schedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
-    return schedule.map((point, idx) => ({
-      ...point,
-      label: `${Math.floor(point.month / 12)}a ${point.month % 12}m`,
-      month: idx,
-    }))
-  }, [hipoteca.capital, state.interestRate, state.termYears])
+    const baseSchedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
+
+    if (!enhancedSchedule) {
+      return baseSchedule.map((point, idx) => ({
+        ...point,
+        label: `${Math.floor(point.month / 12)}a ${point.month % 12}m`,
+        month: idx,
+      }))
+    }
+
+    const lastEnh = enhancedSchedule[enhancedSchedule.length - 1]
+    return baseSchedule.map((basePoint, idx) => {
+      const enhPoint = enhancedSchedule[idx]
+      return {
+        month: idx,
+        label: `${Math.floor(basePoint.month / 12)}a ${basePoint.month % 12}m`,
+        outstandingPrincipal: enhPoint ? enhPoint.outstandingPrincipal : 0,
+        outstandingPrincipalBase: basePoint.outstandingPrincipal,
+        accumulatedPrincipal: enhPoint ? enhPoint.accumulatedPrincipal : lastEnh.accumulatedPrincipal,
+        accumulatedInterest: enhPoint ? enhPoint.accumulatedInterest : lastEnh.accumulatedInterest,
+      }
+    })
+  }, [hipoteca.capital, state.interestRate, state.termYears, enhancedSchedule])
 
   const startYear = new Date().getFullYear()
 
@@ -112,6 +199,8 @@ export function Hipoteca() {
     if (state.termYears <= 20) return 47
     return 59
   })()
+
+  // --- Contribution handlers ---
 
   return (
     <section className="hipoteca">
@@ -233,6 +322,41 @@ export function Hipoteca() {
             </span>
           </div>
         </div>
+
+        {/* Aportaciones periódicas (annual) */}
+        <div className="field">
+          <label htmlFor="annualContribution">Aportaciones periódicas</label>
+          <div className="input-group">
+            <input
+              id="annualContribution"
+              type="number"
+              min={0}
+              step={100}
+              value={state.annualContribution ?? 0}
+              onFocus={e => e.target.select()}
+              onChange={e => setState(prev => ({ ...prev, annualContribution: Number(e.target.value) }))}
+            />
+            <span className="suffix">€/año</span>
+          </div>
+        </div>
+
+        {/* Savings summary */}
+        {payoffInfo && payoffInfo.monthsSaved > 0 && (
+          <div className="field field--computed hipoteca__savings">
+            <label>Con aportaciones periódicas</label>
+            <div className="computed-value">
+              {Math.floor(payoffInfo.enhancedMonths / 12)} años
+              {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
+              <span className="detail hipoteca__savings-detail">
+                {payoffInfo.monthsSaved >= 12
+                  ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
+                  : `${payoffInfo.monthsSaved} meses antes`}
+                {' · '}
+                {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="hipoteca__charts">
@@ -258,15 +382,35 @@ export function Hipoteca() {
                 tick={{ fontSize: 12 }}
                 width={55}
               />
-              <Tooltip content={(props) => <HipotecaChartTooltip {...(props as unknown as ChartTooltipProps)} chartData={chartData} />} />
+              <Tooltip
+                content={(props) => (
+                  <HipotecaChartTooltip
+                    {...(props as unknown as ChartTooltipProps)}
+                    chartData={chartData}
+                    hasContributions={hasContributions}
+                  />
+                )}
+              />
               <Legend
                 formatter={v => {
-                  if (v === 'outstandingPrincipal') return 'Capital pendiente'
+                  if (v === 'outstandingPrincipalBase') return 'Capital pendiente (sin amort.)'
+                  if (v === 'outstandingPrincipal') return hasContributions ? 'Capital pendiente (con amort.)' : 'Capital pendiente'
                   if (v === 'accumulatedPrincipal') return 'Capital amortizado'
                   return 'Intereses pagados'
                 }}
                 wrapperStyle={{ fontSize: 14, textAlign: 'center' }}
               />
+              {hasContributions && (
+                <Line
+                  type="monotone"
+                  dataKey="outstandingPrincipalBase"
+                  stroke="rgba(229, 62, 62, 0.35)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  legendType="line"
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="outstandingPrincipal"

@@ -252,6 +252,83 @@ export function generateAmortizationSchedule(
 }
 
 /**
+ * Generates a monthly amortization schedule with annual lump-sum contributions (French system).
+ * Contributions are applied each January 1st: periodic (monthly × 12 or annual) plus
+ * one-time extraordinary contributions on the first January only.
+ *
+ * @param capital - Loan principal (€)
+ * @param interestTIN - Annual nominal interest rate as percentage (e.g. 3 for 3%)
+ * @param termYears - Loan term in years
+ * @param annualExtraPayment - Annual lump sum applied each January (periodic monthly × 12 + periodic annual)
+ * @param extraFirstJan - One-time extraordinary payment applied only on the first January
+ * @param loanStartMonth - Month the loan starts (0 = January, 11 = December)
+ */
+export function generateAmortizationScheduleWithContributions(
+  capital: number,
+  interestTIN: number,
+  termYears: number,
+  annualExtraPayment: number,
+  extraFirstJan: number,
+  loanStartMonth: number,
+): AmortizationPoint[] {
+  if (
+    !isFinite(capital) || capital <= 0 ||
+    !isFinite(interestTIN) || interestTIN < 0 ||
+    !isFinite(termYears) || termYears <= 0
+  ) {
+    return []
+  }
+
+  const n = termYears * 12
+  const r = interestTIN / 100 / 12
+
+  const monthlyPayment = r === 0
+    ? capital / n
+    : (capital * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+
+  // Months from loan start until the first January 1st (always 1–12)
+  const monthsToFirstJan = (12 - loanStartMonth) % 12 || 12
+
+  const schedule: AmortizationPoint[] = []
+  let outstanding = capital
+  let accPrincipal = 0
+  let accInterest = 0
+
+  schedule.push({ month: 0, outstandingPrincipal: capital, accumulatedPrincipal: 0, accumulatedInterest: 0 })
+
+  for (let m = 1; m <= n; m++) {
+    const interestPart = outstanding * r
+    const principalPart = monthlyPayment - interestPart
+    outstanding = Math.max(0, outstanding - principalPart)
+    accPrincipal += principalPart
+    accInterest += interestPart
+
+    // Apply annual lump sum on each January 1st
+    const isJanuaryFirst = m >= monthsToFirstJan && (m - monthsToFirstJan) % 12 === 0
+    if (isJanuaryFirst && outstanding > 0.01) {
+      const yearIndex = (m - monthsToFirstJan) / 12
+      const lumpSum = annualExtraPayment + (yearIndex === 0 ? extraFirstJan : 0)
+      if (lumpSum > 0) {
+        const actualLumpSum = Math.min(lumpSum, outstanding)
+        outstanding -= actualLumpSum
+        accPrincipal += actualLumpSum
+      }
+    }
+
+    schedule.push({
+      month: m,
+      outstandingPrincipal: Math.max(0, outstanding),
+      accumulatedPrincipal: accPrincipal,
+      accumulatedInterest: accInterest,
+    })
+
+    if (outstanding <= 0.01) break
+  }
+
+  return schedule
+}
+
+/**
  * Calcula el patrimonio neto.
  *
  * @param activos - Valor total de los activos (€)

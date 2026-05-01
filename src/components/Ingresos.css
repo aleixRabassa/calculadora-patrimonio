@@ -270,6 +270,31 @@ input[type="date"] {
   min-width: 0;
 }
 
+.gasto-fecha {
+  width: 80px;
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  box-sizing: border-box;
+  text-align: center;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  &::placeholder {
+    color: var(--text);
+    opacity: 0.45;
+  }
+}
+
 .gastos__add {
   align-self: flex-start;
   margin-top: 4px;

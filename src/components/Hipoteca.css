@@ -90,6 +90,16 @@
   padding-top: 0;
 }
 
+/* Savings summary highlight */
+.hipoteca__savings {
+  border-color: rgba(99, 200, 132, 0.4);
+  background: rgba(99, 200, 132, 0.07);
+}
+
+.hipoteca__savings-detail {
+  color: rgb(99, 200, 132) !important;
+}
+
 .hipoteca__charts .recharts-wrapper,
 .hipoteca__charts .recharts-wrapper *,
 .hipoteca__charts .recharts-wrapper *:focus,

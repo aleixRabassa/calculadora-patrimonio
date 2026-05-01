@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto, generateAmortizationSchedule } from './calculations'
+import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto, generateAmortizationSchedule, generateAmortizationScheduleWithContributions } from './calculations'
 
 describe('calcularSalarioNeto - Andorra', () => {
   test('retorna ceros para bruto inválido', () => {
@@ -374,5 +374,71 @@ describe('generateAmortizationSchedule', () => {
     const hipoteca = calcularHipoteca(200_000, 40_000, 3, 30)
     const last = schedule[schedule.length - 1]
     expect(last.accumulatedInterest).toBeCloseTo(hipoteca.interesesTotales, 0)
+  })
+})
+
+describe('generateAmortizationScheduleWithContributions', () => {
+  test('without contributions produces the same result as the base schedule', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withContrib = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0)
+    expect(withContrib.length).toBe(base.length)
+    expect(withContrib[0].outstandingPrincipal).toBeCloseTo(base[0].outstandingPrincipal, 0)
+    const baseLast = base[base.length - 1]
+    const withLast = withContrib[withContrib.length - 1]
+    expect(withLast.outstandingPrincipal).toBeCloseTo(baseLast.outstandingPrincipal, 0)
+    expect(withLast.accumulatedInterest).toBeCloseTo(baseLast.accumulatedInterest, 0)
+  })
+
+  test('with positive annual contributions, loan is paid off earlier', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withContrib = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 0, 0)
+    expect(withContrib.length).toBeLessThan(base.length)
+    expect(withContrib[withContrib.length - 1].outstandingPrincipal).toBeCloseTo(0, 0)
+  })
+
+  test('extra first-jan payment reduces outstanding more than base at month 12 when starting in January', () => {
+    // Loan starts in January (month 0), so first Jan is at month 12
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withContrib = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 10_000, 0)
+    const baseAt12 = base.find(p => p.month === 12)!
+    const withAt12 = withContrib.find(p => p.month === 12)!
+    expect(withAt12.outstandingPrincipal).toBeLessThan(baseAt12.outstandingPrincipal)
+    expect(baseAt12.outstandingPrincipal - withAt12.outstandingPrincipal).toBeCloseTo(10_000, 0)
+  })
+
+  test('extraordinary payment only applied once (first January)', () => {
+    const yearlyOnly = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 5_000, 0)
+    const yearlyAndPeriodic = generateAmortizationScheduleWithContributions(160_000, 3, 25, 5_000, 5_000, 0)
+    // With both periodic + extra, loan ends even earlier
+    expect(yearlyAndPeriodic.length).toBeLessThan(yearlyOnly.length)
+  })
+
+  test('lump sum never drives outstanding below zero', () => {
+    // 40k annual contribution on a 30k loan should pay off at first January
+    const schedule = generateAmortizationScheduleWithContributions(30_000, 3, 10, 40_000, 0, 0)
+    for (const point of schedule) {
+      expect(point.outstandingPrincipal).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  test('returns empty array for invalid inputs', () => {
+    expect(generateAmortizationScheduleWithContributions(0, 3, 25, 1000, 0, 0)).toEqual([])
+    expect(generateAmortizationScheduleWithContributions(160_000, -1, 25, 1000, 0, 0)).toEqual([])
+    expect(generateAmortizationScheduleWithContributions(160_000, 3, 0, 1000, 0, 0)).toEqual([])
+  })
+
+  test('loanStartMonth affects when first January falls', () => {
+    // Starting in June (5), first Jan is 7 months away
+    const startJune = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 10_000, 5)
+    // Starting in November (10), first Jan is 2 months away
+    const startNov = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 10_000, 10)
+    // At month 12, november start should have had the extra payment applied sooner (month 2)
+    // Both should have outstandingPrincipal lower than base, but at different months
+    const baseAt2 = generateAmortizationSchedule(160_000, 3, 25).find(p => p.month === 2)!
+    const novAt2 = startNov.find(p => p.month === 2)!
+    const juneAt7 = startJune.find(p => p.month === 7)!
+    const baseAt7 = generateAmortizationSchedule(160_000, 3, 25).find(p => p.month === 7)!
+    expect(novAt2.outstandingPrincipal).toBeLessThan(baseAt2.outstandingPrincipal)
+    expect(juneAt7.outstandingPrincipal).toBeLessThan(baseAt7.outstandingPrincipal)
   })
 })
