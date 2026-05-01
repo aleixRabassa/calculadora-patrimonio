@@ -567,7 +567,7 @@ export function Ingresos() {
                 return String(d2.getFullYear())
               }}
               interval={xAxisInterval(horizonYears)}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, dy: 5 }}
             />
             <YAxis
               yAxisId="salary"
