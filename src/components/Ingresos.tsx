@@ -466,10 +466,9 @@ export function Ingresos() {
                 yAxisId="savings"
                 x={dateTargetResult.months}
                 y={dateTargetResult.savings}
-                r={6}
+                r={5}
                 fill="#f6ad55"
-                stroke="white"
-                strokeWidth={2}
+                stroke="none"
                 className="goal-dot-animated"
               />
             )}
@@ -478,10 +477,9 @@ export function Ingresos() {
                 yAxisId="savings"
                 x={savingsTargetResult.mes}
                 y={savingsTargetResult.savings}
-                r={6}
+                r={5}
                 fill="#4ecdc4"
-                stroke="white"
-                strokeWidth={2}
+                stroke="none"
                 className="goal-dot-animated"
               />
             )}
