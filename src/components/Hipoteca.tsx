@@ -449,23 +449,6 @@ export function Hipoteca() {
           )}
         </div>
 
-        {/* Savings summary */}
-        {payoffInfo && payoffInfo.monthsSaved > 0 && (
-          <div className="field field--computed hipoteca__savings">
-            <label>Con aportaciones periódicas</label>
-            <div className="computed-value">
-              {Math.floor(payoffInfo.enhancedMonths / 12)} años
-              {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
-              <span className="detail hipoteca__savings-detail">
-                {payoffInfo.monthsSaved >= 12
-                  ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
-                  : `${payoffInfo.monthsSaved} meses antes`}
-                {' · '}
-                {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
-              </span>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="hipoteca__charts">
@@ -546,6 +529,24 @@ export function Hipoteca() {
               />
             </ComposedChart>
           </ResponsiveContainer>
+        )}
+
+        {/* Savings summary */}
+        {payoffInfo && payoffInfo.monthsSaved > 0 && (
+          <div className="field field--computed hipoteca__savings">
+            <label>Con aportaciones periódicas</label>
+            <div className="computed-value">
+              {Math.floor(payoffInfo.enhancedMonths / 12)} años
+              {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
+              <span className="detail hipoteca__savings-detail">
+                {payoffInfo.monthsSaved >= 12
+                  ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
+                  : `${payoffInfo.monthsSaved} meses antes`}
+                {' · '}
+                {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
+              </span>
+            </div>
+          </div>
         )}
       </div>
     </section>
