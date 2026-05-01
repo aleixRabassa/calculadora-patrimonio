@@ -51,8 +51,10 @@ const DEFAULT_STATE: IngresosState = {
     { id: 'gasto-hipoteca', descripcion: 'Entrada hipoteca', valor: 1_370 },
     { id: 'gasto-gastos', descripcion: 'Gastos', valor: 250 },
   ],
-  gastosExtraordinarios: [],
-  ahorroInicial: 0,
+  gastosExtraordinarios: [
+    { id: 'gasto-ext-itp', descripcion: 'Impostos pis', importe: 18_000 },
+  ],
+  ahorroInicial: 95_000,
   country: 'spain',
   subidas: (() => {
     const base = mesesHastaEnero()
