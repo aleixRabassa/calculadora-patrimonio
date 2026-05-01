@@ -89,14 +89,14 @@ function ChartTooltip({ active, payload, label, chartData }: ChartTooltipProps) 
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'var(--accent)' }} />
           <span className="chart-tooltip__label">Salario neto</span>
-          <span className="chart-tooltip__value">{salarioValue.toLocaleString('es-ES')}€/mes</span>
+          <span className="chart-tooltip__value">{salarioValue.toLocaleString('es-ES')} €/mes</span>
         </div>
       )}
       {typeof ahorroValue === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'rgb(99, 200, 132)' }} />
           <span className="chart-tooltip__label">Ahorro acumulado</span>
-          <span className="chart-tooltip__value">{ahorroValue.toLocaleString('es-ES')}€</span>
+          <span className="chart-tooltip__value">{ahorroValue.toLocaleString('es-ES')} €</span>
         </div>
       )}
     </div>
@@ -518,7 +518,7 @@ export function Ingresos() {
               <div className={`goal-result${dateTargetResult.type === 'found' ? ' goal-result--date' : ' goal-result--warn'}`}>
                 {dateTargetResult.type === 'found' && (
                   <>
-                    <span className="goal-result__amount">{dateTargetResult.savings.toLocaleString('es-ES')}€</span>
+                    <span className="goal-result__amount">{dateTargetResult.savings.toLocaleString('es-ES')} €</span>
                     <span className="goal-result__label">ahorrados en esa fecha</span>
                     {!dateTargetResult.inChartRange && (
                       <span className="goal-result__note">Amplía el horizonte para ver el punto</span>
