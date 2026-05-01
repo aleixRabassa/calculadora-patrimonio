@@ -85,6 +85,22 @@
   text-align: right;
 }
 
+/* Aportaciones extraordinarias — compact, matches field label style */
+.hipoteca .gastos__header {
+  padding: 8px 12px;
+}
+
+.hipoteca .gastos__title h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.hipoteca .gastos__total {
+  font-size: 13px;
+}
+
 /* Chart area */
 .hipoteca__charts {
   padding-top: 0;

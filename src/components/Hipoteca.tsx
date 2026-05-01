@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { Area, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import {
@@ -14,6 +14,13 @@ import './Ingresos.css'
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
+interface ExtraordinaryContribution {
+  id: string
+  descripcion: string
+  importe: number
+  fecha: string // MM/YYYY
+}
+
 interface HipotecaState {
   propertyPrice: number
   parkingPrice: number
@@ -22,6 +29,7 @@ interface HipotecaState {
   termYears: number
   interestRate: number
   annualContribution: number
+  extraordinaryContributions: ExtraordinaryContribution[]
 }
 
 const DEFAULT_STATE: HipotecaState = {
@@ -32,6 +40,7 @@ const DEFAULT_STATE: HipotecaState = {
   termYears: 25,
   interestRate: 3,
   annualContribution: 0,
+  extraordinaryContributions: [],
 }
 
 // Minimal Ingresos state shape needed to compute the default monthly savings
@@ -201,6 +210,33 @@ export function Hipoteca() {
   })()
 
   // --- Contribution handlers ---
+  const [extraordinaryExpanded, setExtraordinaryExpanded] = useState(false)
+  const extraordinaryList = state.extraordinaryContributions ?? []
+  const totalExtraordinary = extraordinaryList.reduce((sum, c) => sum + c.importe, 0)
+
+  const addExtraordinaryContribution = () => {
+    setState(prev => ({
+      ...prev,
+      extraordinaryContributions: [
+        ...(prev.extraordinaryContributions ?? []),
+        { id: crypto.randomUUID(), descripcion: '', importe: 0, fecha: '' },
+      ],
+    }))
+  }
+
+  const removeExtraordinaryContribution = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      extraordinaryContributions: (prev.extraordinaryContributions ?? []).filter(c => c.id !== id),
+    }))
+  }
+
+  const updateExtraordinaryContribution = (id: string, field: 'descripcion' | 'importe' | 'fecha', value: string | number) => {
+    setState(prev => ({
+      ...prev,
+      extraordinaryContributions: (prev.extraordinaryContributions ?? []).map(c => c.id === id ? { ...c, [field]: value } : c),
+    }))
+  }
 
   return (
     <section className="hipoteca">
@@ -338,6 +374,60 @@ export function Hipoteca() {
             />
             <span className="suffix">€/año</span>
           </div>
+        </div>
+
+        {/* Aportaciones extraordinarias (collapsible) */}
+        <div className="gastos">
+          <button
+            type="button"
+            className="gastos__header"
+            onClick={() => setExtraordinaryExpanded(prev => !prev)}
+            aria-expanded={extraordinaryExpanded}
+          >
+            <div className="gastos__title">
+              <h3>Aportaciones extraordinarias</h3>
+              <span className="gastos__total">{fmt(totalExtraordinary)} €</span>
+            </div>
+            <span className={`gastos__toggle${extraordinaryExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
+          </button>
+          {extraordinaryExpanded && (
+            <div className="gastos__body">
+              {extraordinaryList.length === 0 && (
+                <p className="gastos__empty">Sin aportaciones añadidas</p>
+              )}
+              {extraordinaryList.map(contrib => (
+                <div key={contrib.id} className="gasto-row">
+                  <input
+                    type="text"
+                    className="gasto-desc"
+                    placeholder="Descripción"
+                    value={contrib.descripcion}
+                    onChange={e => updateExtraordinaryContribution(contrib.id, 'descripcion', e.target.value)}
+                  />
+                  <div className="input-group gasto-value">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={contrib.importe}
+                      onFocus={e => e.target.select()}
+                      onChange={e => updateExtraordinaryContribution(contrib.id, 'importe', Number(e.target.value))}
+                    />
+                    <span className="suffix">€</span>
+                  </div>
+                  <input
+                    type="text"
+                    className="gasto-fecha"
+                    placeholder="MM/YYYY"
+                    value={contrib.fecha}
+                    onChange={e => updateExtraordinaryContribution(contrib.id, 'fecha', e.target.value)}
+                  />
+                  <button type="button" className="btn-remove" onClick={() => removeExtraordinaryContribution(contrib.id)}>✕</button>
+                </div>
+              ))}
+              <button type="button" className="btn-add gastos__add" onClick={addExtraordinaryContribution}>+ Añadir aportación</button>
+            </div>
+          )}
         </div>
 
         {/* Savings summary */}
