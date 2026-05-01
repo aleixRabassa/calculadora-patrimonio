@@ -315,6 +315,7 @@ export function Ingresos() {
               min={0}
               step={500}
               value={state.brutoAnual}
+              onFocus={e => e.target.select()}
               onChange={e => setState(prev => ({ ...prev, brutoAnual: Number(e.target.value) }))}
             />
             <span className="suffix">€/año</span>
@@ -384,6 +385,7 @@ export function Ingresos() {
                       min={0}
                       step={50}
                       value={gasto.valor}
+                      onFocus={e => e.target.select()}
                       onChange={e => updateGasto(gasto.id, 'valor', Number(e.target.value))}
                     />
                     <span className="suffix">€/mes</span>
@@ -429,6 +431,7 @@ export function Ingresos() {
                       min={0}
                       step={100}
                       value={gasto.importe}
+                      onFocus={e => e.target.select()}
                       onChange={e => updateGastoExtraordinario(gasto.id, 'importe', Number(e.target.value))}
                     />
                     <span className="suffix">€</span>
@@ -450,6 +453,7 @@ export function Ingresos() {
               min={0}
               step={500}
               value={state.ahorroInicial}
+              onFocus={e => e.target.select()}
               onChange={e => setState(prev => ({ ...prev, ahorroInicial: Number(e.target.value) }))}
             />
             <span className="suffix">€</span>
@@ -493,6 +497,7 @@ export function Ingresos() {
                       min={1}
                       max={MAX_HORIZONTE_MESES}
                       value={subida.mes}
+                      onFocus={e => e.target.select()}
                       onChange={e => updateSubida(subida.id, 'mes', Number(e.target.value))}
                     />
                     {hints && <span className="subida-hint subida-hint--date">{hints.dateLabel}</span>}
@@ -507,6 +512,7 @@ export function Ingresos() {
                         min={0}
                         step={500}
                         value={subida.nuevoBrutoAnual}
+                        onFocus={e => e.target.select()}
                         onChange={e => updateSubida(subida.id, 'nuevoBrutoAnual', Number(e.target.value))}
                       />
                       {hints && (
@@ -648,6 +654,7 @@ export function Ingresos() {
                 step={1000}
                 value={ahorroObjetivo ?? ''}
                 placeholder="0"
+                onFocus={e => e.target.select()}
                 onChange={e => setAhorroObjetivo(e.target.value === '' ? null : Number(e.target.value))}
               />
               <span className="suffix">€</span>
