@@ -1,9 +1,15 @@
 .tabs {
   display: flex;
-  gap: 0;
+  align-items: stretch;
+  justify-content: space-between;
   border-bottom: 2px solid var(--border);
   padding: 0 16px;
+}
+
+.tabs-list {
+  display: flex;
   overflow-x: auto;
+  flex: 1;
 }
 
 .tab {
@@ -28,4 +34,80 @@
 .tab--active {
   color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+/* Controls: theme toggle + settings */
+.tabs-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-2, rgba(0,0,0,0.06));
+  }
+}
+
+.icon-btn--active {
+  color: var(--accent);
+  background: var(--surface-2, rgba(0,0,0,0.06));
+}
+
+/* Dropdown */
+.settings-wrapper {
+  position: relative;
+}
+
+.settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 6px;
+  z-index: 100;
+  animation: menu-appear 0.12s ease-out;
+}
+
+@keyframes menu-appear {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.settings-item {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 7px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--surface-2, rgba(0,0,0,0.06));
+  }
 }
