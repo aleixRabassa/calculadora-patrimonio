@@ -12,7 +12,9 @@
 
 .ingresos h2 {
   margin: 0 0 20px;
-  font-size: 22px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-h);
 }
 
 .ingresos h3 {
@@ -400,7 +402,7 @@ input[type="date"] {
 
 /* Charts */
 .ingresos__charts {
-  padding-top: 8px;
+  padding-top: 0;
 }
 
 .charts__header {

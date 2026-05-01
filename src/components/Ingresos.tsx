@@ -31,7 +31,7 @@ interface IngresosState {
 const DEFAULT_STATE: IngresosState = {
   brutoAnual: 25_000,
   gastos: [{ id: 'gasto-default', descripcion: 'Gastos fijos', valor: 800 }],
-  ahorroInicial: 5_000,
+  ahorroInicial: 95_000,
   subidas: [],
 }
 
