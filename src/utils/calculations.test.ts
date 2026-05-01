@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto } from './calculations'
+import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto, generateAmortizationSchedule } from './calculations'
 
 describe('calcularSalarioNeto - Andorra', () => {
   test('retorna ceros para bruto inválido', () => {
@@ -324,5 +324,55 @@ describe('calcularAhorroInicialEfectivo', () => {
 
   test('gastos exactamente iguales al ahorro dan cero', () => {
     expect(calcularAhorroInicialEfectivo(10_000, 10_000)).toBe(0)
+  })
+})
+
+describe('generateAmortizationSchedule', () => {
+  test('generates correct number of points (term * 12 + 1 including month 0)', () => {
+    const schedule = generateAmortizationSchedule(160_000, 3, 30)
+    expect(schedule.length).toBe(361) // 30*12 + 1
+  })
+
+  test('first point has full capital outstanding and zero accumulated', () => {
+    const schedule = generateAmortizationSchedule(160_000, 3, 30)
+    expect(schedule[0].outstandingPrincipal).toBe(160_000)
+    expect(schedule[0].accumulatedPrincipal).toBe(0)
+    expect(schedule[0].accumulatedInterest).toBe(0)
+  })
+
+  test('last point has zero outstanding and full capital amortized', () => {
+    const schedule = generateAmortizationSchedule(160_000, 3, 30)
+    const last = schedule[schedule.length - 1]
+    expect(last.outstandingPrincipal).toBeCloseTo(0, 0)
+    expect(last.accumulatedPrincipal).toBeCloseTo(160_000, 0)
+  })
+
+  test('accumulated principal + outstanding ≈ capital for any point', () => {
+    const schedule = generateAmortizationSchedule(200_000, 2.5, 25)
+    for (const point of schedule) {
+      expect(point.accumulatedPrincipal + point.outstandingPrincipal).toBeCloseTo(200_000, 0)
+    }
+  })
+
+  test('returns empty array for invalid inputs', () => {
+    expect(generateAmortizationSchedule(0, 3, 30)).toEqual([])
+    expect(generateAmortizationSchedule(100_000, -1, 30)).toEqual([])
+    expect(generateAmortizationSchedule(100_000, 3, 0)).toEqual([])
+    expect(generateAmortizationSchedule(NaN, 3, 30)).toEqual([])
+  })
+
+  test('works with zero interest rate', () => {
+    const schedule = generateAmortizationSchedule(120_000, 0, 10)
+    expect(schedule.length).toBe(121)
+    const last = schedule[schedule.length - 1]
+    expect(last.outstandingPrincipal).toBeCloseTo(0, 0)
+    expect(last.accumulatedInterest).toBeCloseTo(0, 5)
+  })
+
+  test('total interest matches calcularHipoteca', () => {
+    const schedule = generateAmortizationSchedule(160_000, 3, 30)
+    const hipoteca = calcularHipoteca(200_000, 40_000, 3, 30)
+    const last = schedule[schedule.length - 1]
+    expect(last.accumulatedInterest).toBeCloseTo(hipoteca.interesesTotales, 0)
   })
 })

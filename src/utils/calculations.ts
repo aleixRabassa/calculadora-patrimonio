@@ -190,6 +190,67 @@ export function calcularInversion(
   return { valorFinal, capitalInvertido, interesesGenerados }
 }
 
+// --- Amortization Schedule ---
+
+export interface AmortizationPoint {
+  month: number
+  outstandingPrincipal: number
+  accumulatedPrincipal: number
+  accumulatedInterest: number
+}
+
+/**
+ * Generates a monthly amortization schedule (French system).
+ *
+ * @param capital - Loan principal (€)
+ * @param interestTIN - Annual nominal interest rate as percentage (e.g. 3 for 3%)
+ * @param termYears - Loan term in years
+ */
+export function generateAmortizationSchedule(
+  capital: number,
+  interestTIN: number,
+  termYears: number,
+): AmortizationPoint[] {
+  if (
+    !isFinite(capital) || capital <= 0 ||
+    !isFinite(interestTIN) || interestTIN < 0 ||
+    !isFinite(termYears) || termYears <= 0
+  ) {
+    return []
+  }
+
+  const n = termYears * 12
+  const r = interestTIN / 100 / 12
+
+  const monthlyPayment = r === 0
+    ? capital / n
+    : (capital * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+
+  const schedule: AmortizationPoint[] = []
+  let outstanding = capital
+  let accPrincipal = 0
+  let accInterest = 0
+
+  schedule.push({ month: 0, outstandingPrincipal: capital, accumulatedPrincipal: 0, accumulatedInterest: 0 })
+
+  for (let m = 1; m <= n; m++) {
+    const interestPart = outstanding * r
+    const principalPart = monthlyPayment - interestPart
+    outstanding -= principalPart
+    accPrincipal += principalPart
+    accInterest += interestPart
+
+    schedule.push({
+      month: m,
+      outstandingPrincipal: Math.max(0, outstanding),
+      accumulatedPrincipal: accPrincipal,
+      accumulatedInterest: accInterest,
+    })
+  }
+
+  return schedule
+}
+
 /**
  * Calcula el patrimonio neto.
  *
