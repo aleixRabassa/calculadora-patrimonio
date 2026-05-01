@@ -460,7 +460,6 @@ export function Ingresos() {
               fill="rgba(99, 200, 132, 0.15)"
               stroke="rgb(99, 200, 132)"
               strokeWidth={2}
-              activeDot={false}
             />
             {dateTargetResult?.type === 'found' && dateTargetResult.inChartRange && (
               <ReferenceDot
