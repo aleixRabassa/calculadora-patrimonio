@@ -85,3 +85,7 @@ Antes de implementar cualquier tarea no trivial:
 - CSS is colocated: each component has a `.css` file beside it (e.g. `App.css` next to `App.tsx`). No CSS-in-JS.
 - New hooks go in `src/hooks/`. Components will go in `src/components/` when created.
 - The ESLint config enforces `react-hooks` rules (exhaustive deps). Don't disable them.
+
+## Important Rules
+
+- **NEVER make git commits**. Never use `git commit`, `git push`, or any other git commands that modify the repository. The user is responsible for all git operations.

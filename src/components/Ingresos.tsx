@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Area, ComposedChart, Line, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularSalarioNeto } from '../utils/calculations'
@@ -10,16 +10,27 @@ interface SubidaSalarial {
   nuevoBrutoAnual: number
 }
 
+interface GastoMensual {
+  id: string
+  descripcion: string
+  valor: number
+}
+
+// Legacy shape used only for one-time migration
+interface LegacyIngresosState {
+  gastosFijos?: number
+}
+
 interface IngresosState {
   brutoAnual: number
-  gastosFijos: number
+  gastos: GastoMensual[]
   ahorroInicial: number
   subidas: SubidaSalarial[]
 }
 
 const DEFAULT_STATE: IngresosState = {
   brutoAnual: 25_000,
-  gastosFijos: 800,
+  gastos: [{ id: 'gasto-default', descripcion: 'Gastos fijos', valor: 800 }],
   ahorroInicial: 5_000,
   subidas: [],
 }
@@ -40,9 +51,21 @@ export function Ingresos() {
   const [horizonYears, setHorizonYears] = useState<number>(5)
   const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '')
   const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', null)
+  const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)
+
+  // One-time migration: if old state has gastosFijos but no gastos, convert it
+  useEffect(() => {
+    if (!state.gastos) {
+      const legacy = (state as IngresosState & LegacyIngresosState).gastosFijos ?? 800
+      setState(prev => ({ ...prev, gastos: [{ id: crypto.randomUUID(), descripcion: 'Gastos fijos', valor: legacy }] }))
+    }
+  }, [state, setState])
+
+  const gastosList = state.gastos ?? []
+  const totalGastos = gastosList.reduce((sum, g) => sum + g.valor, 0)
 
   const netoInfo = calcularSalarioNeto(state.brutoAnual)
-  const ahorroMensual = netoInfo.netoMensual - state.gastosFijos
+  const ahorroMensual = netoInfo.netoMensual - totalGastos
 
   // Full 20-year projection used for target calculations
   const fullProjection = useMemo(() => {
@@ -50,13 +73,14 @@ export function Ingresos() {
     const data: Array<{ mes: number; label: string; salarioNeto: number; ahorroAcumulado: number }> = []
     let ahorroAcum = state.ahorroInicial
     let brutoActual = state.brutoAnual
+    const gastosMensuales = (state.gastos ?? []).reduce((sum, g) => sum + g.valor, 0)
 
     for (let m = 0; m <= MAX_HORIZONTE_MESES; m++) {
       const subida = subidasOrdenadas.find(s => s.mes === m)
       if (subida) brutoActual = subida.nuevoBrutoAnual
 
       const neto = calcularSalarioNeto(brutoActual)
-      const ahorro = neto.netoMensual - state.gastosFijos
+      const ahorro = neto.netoMensual - gastosMensuales
       if (m > 0) ahorroAcum += ahorro
 
       const year = Math.floor(m / 12)
@@ -69,7 +93,7 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.gastosFijos, state.ahorroInicial, state.subidas])
+  }, [state.brutoAnual, state.gastos, state.ahorroInicial, state.subidas])
 
   const chartData = useMemo(
     () => fullProjection.slice(0, horizonYears * 12 + 1),
@@ -109,13 +133,32 @@ export function Ingresos() {
     }
   }, [ahorroObjetivo, fullProjection, horizonYears])
 
-  const addSubida = () => {
-    const nextMes = state.subidas.length > 0
-      ? Math.max(...state.subidas.map(s => s.mes)) + 12
-      : 12
+  const addGasto = () => {
     setState(prev => ({
       ...prev,
-      subidas: [...prev.subidas, { id: crypto.randomUUID(), mes: nextMes, nuevoBrutoAnual: prev.brutoAnual + 2_000 }],
+      gastos: [...(prev.gastos ?? []), { id: crypto.randomUUID(), descripcion: '', valor: 0 }],
+    }))
+  }
+
+  const removeGasto = (id: string) => {
+    setState(prev => ({ ...prev, gastos: (prev.gastos ?? []).filter(g => g.id !== id) }))
+  }
+
+  const updateGasto = (id: string, field: 'descripcion' | 'valor', value: string | number) => {
+    setState(prev => ({
+      ...prev,
+      gastos: (prev.gastos ?? []).map(g => g.id === id ? { ...g, [field]: value } : g),
+    }))
+  }
+
+  const addSubida = () => {
+    const sortedSubidas = [...state.subidas].sort((a, b) => a.mes - b.mes)
+    const lastSubida = sortedSubidas[sortedSubidas.length - 1] ?? null
+    const nextMes = lastSubida != null ? lastSubida.mes + 12 : 12
+    const nextBruto = lastSubida != null ? lastSubida.nuevoBrutoAnual + 5_000 : state.brutoAnual + 5_000
+    setState(prev => ({
+      ...prev,
+      subidas: [...prev.subidas, { id: crypto.randomUUID(), mes: nextMes, nuevoBrutoAnual: nextBruto }],
     }))
   }
 
@@ -161,19 +204,49 @@ export function Ingresos() {
           </div>
         </div>
 
-        <div className="field">
-          <label htmlFor="gastosFijos">Gastos fijos mensuales</label>
-          <div className="input-group">
-            <input
-              id="gastosFijos"
-              type="number"
-              min={0}
-              step={50}
-              value={state.gastosFijos}
-              onChange={e => setState(prev => ({ ...prev, gastosFijos: Number(e.target.value) }))}
-            />
-            <span className="suffix">€/mes</span>
-          </div>
+        <div className="gastos">
+          <button
+            type="button"
+            className="gastos__header"
+            onClick={() => setGastosExpanded(prev => !prev)}
+            aria-expanded={gastosExpanded}
+          >
+            <div className="gastos__title">
+              <h3>Gastos mensuales</h3>
+              <span className="gastos__total">{totalGastos.toFixed(0)} €/mes</span>
+            </div>
+            <span className={`gastos__toggle${gastosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
+          </button>
+          {gastosExpanded && (
+            <div className="gastos__body">
+              {gastosList.length === 0 && (
+                <p className="gastos__empty">Sin gastos añadidos</p>
+              )}
+              {gastosList.map(gasto => (
+                <div key={gasto.id} className="gasto-row">
+                  <input
+                    type="text"
+                    className="gasto-desc"
+                    placeholder="Descripción"
+                    value={gasto.descripcion}
+                    onChange={e => updateGasto(gasto.id, 'descripcion', e.target.value)}
+                  />
+                  <div className="input-group gasto-value">
+                    <input
+                      type="number"
+                      min={0}
+                      step={50}
+                      value={gasto.valor}
+                      onChange={e => updateGasto(gasto.id, 'valor', Number(e.target.value))}
+                    />
+                    <span className="suffix">€/mes</span>
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => removeGasto(gasto.id)}>✕</button>
+                </div>
+              ))}
+              <button type="button" className="btn-add gastos__add" onClick={addGasto}>+ Añadir gasto</button>
+            </div>
+          )}
         </div>
 
         <div className="field">
