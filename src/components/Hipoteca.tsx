@@ -215,13 +215,24 @@ export function Hipoteca() {
   const totalExtraordinary = extraordinaryList.reduce((sum, c) => sum + c.importe, 0)
 
   const addExtraordinaryContribution = () => {
-    setState(prev => ({
-      ...prev,
-      extraordinaryContributions: [
-        ...(prev.extraordinaryContributions ?? []),
-        { id: crypto.randomUUID(), descripcion: '', importe: 0, fecha: '' },
-      ],
-    }))
+    setState(prev => {
+      const list = prev.extraordinaryContributions ?? []
+      let nextFecha: string
+      if (list.length === 0) {
+        nextFecha = `01/${new Date().getFullYear() + 1}`
+      } else {
+        const lastFecha = list[list.length - 1].fecha
+        const year = parseInt(lastFecha.split('/')[1], 10)
+        nextFecha = `01/${isNaN(year) ? new Date().getFullYear() + 1 : year + 1}`
+      }
+      return {
+        ...prev,
+        extraordinaryContributions: [
+          ...list,
+          { id: crypto.randomUUID(), descripcion: '', importe: 5000, fecha: nextFecha },
+        ],
+      }
+    })
   }
 
   const removeExtraordinaryContribution = (id: string) => {
