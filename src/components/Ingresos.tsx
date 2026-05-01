@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { Area, ComposedChart, Line, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularSalarioNeto } from '../utils/calculations'
+import type { Country } from '../utils/calculations'
 import './Ingresos.css'
 
 interface SubidaSalarial {
@@ -26,6 +27,7 @@ interface IngresosState {
   gastos: GastoMensual[]
   ahorroInicial: number
   subidas: SubidaSalarial[]
+  country: Country
 }
 
 function mesesHastaEnero(): number {
@@ -40,6 +42,7 @@ const DEFAULT_STATE: IngresosState = {
     { id: 'gasto-gastos', descripcion: 'Gastos', valor: 250 },
   ],
   ahorroInicial: 0,
+  country: 'spain',
   subidas: (() => {
     const base = mesesHastaEnero()
     return [
@@ -129,7 +132,7 @@ export function Ingresos() {
   const gastosList = state.gastos ?? []
   const totalGastos = gastosList.reduce((sum, g) => sum + g.valor, 0)
 
-  const netoInfo = calcularSalarioNeto(state.brutoAnual)
+  const netoInfo = calcularSalarioNeto(state.brutoAnual, state.country ?? 'spain')
   const ahorroMensual = netoInfo.netoMensual - totalGastos
 
   // Full 20-year projection used for target calculations
@@ -144,7 +147,7 @@ export function Ingresos() {
       const subida = subidasOrdenadas.find(s => s.mes === m)
       if (subida) brutoActual = subida.nuevoBrutoAnual
 
-      const neto = calcularSalarioNeto(brutoActual)
+      const neto = calcularSalarioNeto(brutoActual, state.country ?? 'spain')
       const ahorro = neto.netoMensual - gastosMensuales
       if (m > 0) ahorroAcum += ahorro
 
@@ -158,7 +161,7 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.gastos, state.ahorroInicial, state.subidas])
+  }, [state.brutoAnual, state.gastos, state.ahorroInicial, state.subidas, state.country])
 
   const chartData = useMemo(
     () => fullProjection.slice(0, horizonYears * 12 + 1),
@@ -279,10 +282,32 @@ export function Ingresos() {
         </div>
 
         <div className="field field--computed">
-          <label>Salario neto mensual</label>
+          <div className="field__label-row">
+            <label>Salario neto mensual</label>
+            <div className="country-selector">
+              <button
+                type="button"
+                className={`country-btn${(state.country ?? 'spain') === 'spain' ? ' country-btn--active' : ''}`}
+                onClick={() => setState(prev => ({ ...prev, country: 'spain' }))}
+              >
+                España
+              </button>
+              <button
+                type="button"
+                className={`country-btn${(state.country ?? 'spain') === 'andorra' ? ' country-btn--active' : ''}`}
+                onClick={() => setState(prev => ({ ...prev, country: 'andorra' }))}
+              >
+                Andorra
+              </button>
+            </div>
+          </div>
           <div className="computed-value">
             {netoInfo.netoMensual.toFixed(0)} €/mes
-            <span className="detail">IRPF efectivo: {netoInfo.tipoEfectivoIRPF.toFixed(1)}%</span>
+          </div>
+          <label className="computed-sublabel">Salario neto anual</label>
+          <div className="computed-value">
+            {netoInfo.netoAnual.toFixed(0)} €/año
+            <span className="detail">IRPF efectivo: {netoInfo.tipoEfectivoIRPF.toFixed(1)}% · Total retenido: {(netoInfo.irpf + netoInfo.seguridadSocial).toFixed(0)} €</span>
           </div>
         </div>
 

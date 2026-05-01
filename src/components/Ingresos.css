@@ -37,6 +37,49 @@
   margin-bottom: 4px;
 }
 
+.field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+
+  label {
+    margin-bottom: 0;
+  }
+}
+
+.country-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.country-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1.4;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.country-btn--active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+
+  &:hover {
+    color: #fff;
+  }
+}
+
 .input-group {
   display: flex;
   align-items: stretch;
@@ -98,6 +141,15 @@ input[type="date"] {
 
 .computed-value--negative {
   color: #e53e3e;
+}
+
+.computed-sublabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-top: 10px;
+  margin-bottom: 4px;
 }
 
 .computed-value .detail {

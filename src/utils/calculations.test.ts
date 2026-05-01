@@ -1,6 +1,65 @@
 import { describe, test, expect } from 'vitest'
 import { calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto } from './calculations'
 
+describe('calcularSalarioNeto - Andorra', () => {
+  test('retorna ceros para bruto inválido', () => {
+    const r = calcularSalarioNeto(0, 'andorra')
+    expect(r.netoMensual).toBe(0)
+    expect(r.irpf).toBe(0)
+    expect(r.seguridadSocial).toBe(0)
+  })
+
+  test('salario bajo (20k) no paga IRPF, solo CASS', () => {
+    const r = calcularSalarioNeto(20_000, 'andorra')
+    // Base imposable = 20000 - 20000*0.065 = 18700 → < 24k → IRPF = 0
+    expect(r.irpf).toBe(0)
+    expect(r.seguridadSocial).toBeCloseTo(20_000 * 0.065, 2)
+    expect(r.netoMensual).toBeCloseTo((20_000 - 20_000 * 0.065) / 12, 2)
+  })
+
+  test('salario medio (30k) paga 5% solo sobre la parte que supera 24k', () => {
+    const r = calcularSalarioNeto(30_000, 'andorra')
+    const cass = 30_000 * 0.065
+    const base = 30_000 - cass
+    // base ≈ 28050 → 5% on (28050 - 24000) = 202.5
+    const expectedIrpf = (base - 24_000) * 0.05
+    expect(r.seguridadSocial).toBeCloseTo(cass, 2)
+    expect(r.irpf).toBeCloseTo(expectedIrpf, 2)
+    expect(r.netoAnual).toBeCloseTo(30_000 - cass - expectedIrpf, 2)
+  })
+
+  test('salario alto (60k) aplica 10% sobre la parte que supera 40k', () => {
+    const r = calcularSalarioNeto(60_000, 'andorra')
+    const cass = Math.min(60_000, 50_400) * 0.065
+    const base = 60_000 - cass
+    const expectedIrpf = (40_000 - 24_000) * 0.05 + (base - 40_000) * 0.10
+    expect(r.irpf).toBeCloseTo(expectedIrpf, 1)
+    expect(r.netoAnual).toBeCloseTo(60_000 - cass - expectedIrpf, 1)
+  })
+
+  test('netoAnual = bruto - CASS - IRPF', () => {
+    const r = calcularSalarioNeto(40_000, 'andorra')
+    expect(r.netoAnual).toBeCloseTo(40_000 - r.seguridadSocial - r.irpf, 2)
+  })
+
+  test('netoMensual = netoAnual / 12', () => {
+    const r = calcularSalarioNeto(50_000, 'andorra')
+    expect(r.netoMensual).toBeCloseTo(r.netoAnual / 12, 2)
+  })
+
+  test('CASS está limitada por la base máxima', () => {
+    const r80k = calcularSalarioNeto(80_000, 'andorra')
+    const r100k = calcularSalarioNeto(100_000, 'andorra')
+    expect(r80k.seguridadSocial).toBeCloseTo(r100k.seguridadSocial, 2)
+  })
+
+  test('neto Andorra es mayor que neto España para el mismo salario (40k)', () => {
+    const spain = calcularSalarioNeto(40_000, 'spain')
+    const andorra = calcularSalarioNeto(40_000, 'andorra')
+    expect(andorra.netoMensual).toBeGreaterThan(spain.netoMensual)
+  })
+})
+
 describe('calcularSalarioNeto', () => {
   test('retorna ceros para bruto inválido', () => {
     const r = calcularSalarioNeto(0)
