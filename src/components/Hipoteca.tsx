@@ -28,7 +28,7 @@ interface HipotecaState {
   itpPct: number
   termYears: number
   interestRate: number
-  annualContribution: number
+  annualContribution?: number
   extraordinaryContributions: ExtraordinaryContribution[]
 }
 
@@ -39,7 +39,6 @@ const DEFAULT_STATE: HipotecaState = {
   itpPct: 10,
   termYears: 25,
   interestRate: 3,
-  annualContribution: 0,
   extraordinaryContributions: [],
 }
 
@@ -129,16 +128,16 @@ export function Hipoteca() {
   const ingresosExpenses = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
   const ingresosNet = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain')
   const defaultAhorroMensual = Math.max(0, ingresosNet.netoMensual - ingresosExpenses)
+  const annualizedSavings = Math.max(0, Math.round(defaultAhorroMensual * 12))
 
-  // Migration: initialise contribution field when absent (new field on existing state).
+  // Initialise contribution field when absent (new users or migration).
   useEffect(() => {
     if (state.annualContribution == null) {
-      setState(prev => ({
-        ...prev,
-        annualContribution: Math.max(0, Math.round(defaultAhorroMensual * 12)),
-      }))
+      setState(prev => ({ ...prev, annualContribution: annualizedSavings }))
     }
-  }, [state.annualContribution, setState, defaultAhorroMensual])
+  }, [state.annualContribution, setState, annualizedSavings])
+
+  const isSyncedWithSavings = (state.annualContribution ?? annualizedSavings) === annualizedSavings
 
   const totalPrice = state.propertyPrice + state.parkingPrice
   const financedAmount = totalPrice * (state.financingPct / 100)
@@ -370,9 +369,18 @@ export function Hipoteca() {
           </div>
         </div>
 
-        {/* Aportaciones periódicas (annual) */}
+        {/* Aportaciones anuales */}
         <div className="field">
-          <label htmlFor="annualContribution">Aportaciones periódicas</label>
+          <div className="field__label-row">
+            <label htmlFor="annualContribution">Aportaciones anuales</label>
+            <button
+              type="button"
+              className={`sync-link${isSyncedWithSavings ? ' sync-link--synced' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, annualContribution: annualizedSavings }))}
+            >
+              Ahorro anual disponible: {fmt(annualizedSavings)} €
+            </button>
+          </div>
           <div className="input-group">
             <input
               id="annualContribution"
@@ -499,7 +507,7 @@ export function Hipoteca() {
                   if (v === 'accumulatedPrincipal') return 'Capital amortizado'
                   return 'Intereses pagados'
                 }}
-                wrapperStyle={{ fontSize: 14, textAlign: 'center' }}
+                wrapperStyle={{ fontSize: 14, textAlign: 'center', width: '100%', left: 0 }}
               />
               {hasContributions && (
                 <Line
