@@ -57,7 +57,8 @@
   white-space: nowrap;
 }
 
-input[type="number"] {
+input[type="number"],
+input[type="date"] {
   font-family: var(--mono);
   font-size: 15px;
   padding: 8px 12px;
@@ -183,6 +184,100 @@ input[type="number"] {
     color: white;
     border-color: #e53e3e;
   }
+}
+
+/* Goal inputs below chart */
+.goals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.goal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: default;
+}
+
+.goal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.goal-dot--date {
+  background: #f6ad55;
+  box-shadow: 0 0 0 2px rgba(246, 173, 85, 0.3);
+}
+
+.goal-dot--savings {
+  background: #4ecdc4;
+  box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.3);
+}
+
+.goal-result {
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.goal-result--date {
+  background: rgba(246, 173, 85, 0.1);
+  border: 1px solid rgba(246, 173, 85, 0.35);
+}
+
+.goal-result--savings {
+  background: rgba(78, 205, 196, 0.1);
+  border: 1px solid rgba(78, 205, 196, 0.35);
+}
+
+.goal-result--warn {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+.goal-result__amount {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-h);
+  line-height: 1.2;
+}
+
+.goal-result__label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.goal-result__note {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.65;
+  font-style: italic;
+  margin-top: 2px;
 }
 
 /* Charts */

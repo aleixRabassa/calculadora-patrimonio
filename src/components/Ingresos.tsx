@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Area, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
+import { Area, ComposedChart, Line, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularSalarioNeto } from '../utils/calculations'
 import './Ingresos.css'
@@ -38,32 +38,26 @@ function xAxisInterval(years: number): number {
 export function Ingresos() {
   const [state, setState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_STATE)
   const [horizonYears, setHorizonYears] = useState<number>(5)
+  const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '')
+  const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', null)
 
   const netoInfo = calcularSalarioNeto(state.brutoAnual)
   const ahorroMensual = netoInfo.netoMensual - state.gastosFijos
 
-  const chartData = useMemo(() => {
-    const horizonMeses = horizonYears * 12
-    // Sort salary raises by month
+  // Full 20-year projection used for target calculations
+  const fullProjection = useMemo(() => {
     const subidasOrdenadas = [...state.subidas].sort((a, b) => a.mes - b.mes)
-
     const data: Array<{ mes: number; label: string; salarioNeto: number; ahorroAcumulado: number }> = []
     let ahorroAcum = state.ahorroInicial
     let brutoActual = state.brutoAnual
 
-    for (let m = 0; m <= horizonMeses; m++) {
-      // Check if there's a salary raise at this month
+    for (let m = 0; m <= MAX_HORIZONTE_MESES; m++) {
       const subida = subidasOrdenadas.find(s => s.mes === m)
-      if (subida) {
-        brutoActual = subida.nuevoBrutoAnual
-      }
+      if (subida) brutoActual = subida.nuevoBrutoAnual
 
       const neto = calcularSalarioNeto(brutoActual)
       const ahorro = neto.netoMensual - state.gastosFijos
-
-      if (m > 0) {
-        ahorroAcum += ahorro
-      }
+      if (m > 0) ahorroAcum += ahorro
 
       const year = Math.floor(m / 12)
       const month = m % 12
@@ -75,7 +69,45 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.gastosFijos, state.ahorroInicial, state.subidas, horizonYears])
+  }, [state.brutoAnual, state.gastosFijos, state.ahorroInicial, state.subidas])
+
+  const chartData = useMemo(
+    () => fullProjection.slice(0, horizonYears * 12 + 1),
+    [fullProjection, horizonYears],
+  )
+
+  const dateTargetResult = useMemo(() => {
+    if (!fechaObjetivo) return null
+    const today = new Date()
+    const parts = fechaObjetivo.split('-').map(Number)
+    const months = (parts[0] - today.getFullYear()) * 12 + (parts[1] - 1 - today.getMonth())
+    if (months < 0) return { type: 'past' as const }
+    if (months > MAX_HORIZONTE_MESES) return { type: 'far' as const }
+    const dataPoint = fullProjection[months]
+    return {
+      type: 'found' as const,
+      months,
+      savings: dataPoint.ahorroAcumulado,
+      inChartRange: months <= horizonYears * 12,
+    }
+  }, [fechaObjetivo, fullProjection, horizonYears])
+
+  const savingsTargetResult = useMemo(() => {
+    if (!ahorroObjetivo || ahorroObjetivo <= 0) return null
+    if (fullProjection[0].ahorroAcumulado >= ahorroObjetivo) return { type: 'already' as const }
+    const idx = fullProjection.findIndex(d => d.ahorroAcumulado >= ahorroObjetivo)
+    if (idx === -1) return { type: 'unreachable' as const }
+    const today = new Date()
+    const resultDate = new Date(today.getFullYear(), today.getMonth() + idx, 1)
+    const dateLabel = resultDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    return {
+      type: 'found' as const,
+      mes: idx,
+      dateLabel,
+      savings: fullProjection[idx].ahorroAcumulado,
+      inChartRange: idx <= horizonYears * 12,
+    }
+  }, [ahorroObjetivo, fullProjection, horizonYears])
 
   const addSubida = () => {
     const nextMes = state.subidas.length > 0
@@ -266,8 +298,111 @@ export function Ingresos() {
               stroke="rgb(99, 200, 132)"
               strokeWidth={2}
             />
+            {dateTargetResult?.type === 'found' && dateTargetResult.inChartRange && (
+              <ReferenceLine
+                x={dateTargetResult.months}
+                stroke="#f6ad55"
+                strokeDasharray="4 4"
+                strokeOpacity={0.8}
+              />
+            )}
+            {dateTargetResult?.type === 'found' && dateTargetResult.inChartRange && (
+              <ReferenceDot
+                yAxisId="savings"
+                x={dateTargetResult.months}
+                y={dateTargetResult.savings}
+                r={6}
+                fill="#f6ad55"
+                stroke="white"
+                strokeWidth={2}
+              />
+            )}
+            {ahorroObjetivo != null && ahorroObjetivo > 0 && savingsTargetResult?.type === 'found' && savingsTargetResult.inChartRange && (
+              <ReferenceLine
+                yAxisId="savings"
+                y={ahorroObjetivo}
+                stroke="#4ecdc4"
+                strokeDasharray="4 4"
+                strokeOpacity={0.8}
+              />
+            )}
+            {savingsTargetResult?.type === 'found' && savingsTargetResult.inChartRange && (
+              <ReferenceDot
+                yAxisId="savings"
+                x={savingsTargetResult.mes}
+                y={savingsTargetResult.savings}
+                r={6}
+                fill="#4ecdc4"
+                stroke="white"
+                strokeWidth={2}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
+
+        <div className="goals">
+          <div className="goal-item">
+            <label className="goal-label" htmlFor="fechaObjetivo">
+              <span className="goal-dot goal-dot--date" />
+              Fecha objetivo
+            </label>
+            <input
+              id="fechaObjetivo"
+              type="date"
+              value={fechaObjetivo}
+              onChange={e => setFechaObjetivo(e.target.value)}
+            />
+            {dateTargetResult && (
+              <div className={`goal-result${dateTargetResult.type === 'found' ? ' goal-result--date' : ' goal-result--warn'}`}>
+                {dateTargetResult.type === 'found' && (
+                  <>
+                    <span className="goal-result__amount">{dateTargetResult.savings.toLocaleString('es-ES')}€</span>
+                    <span className="goal-result__label">ahorrados en esa fecha</span>
+                    {!dateTargetResult.inChartRange && (
+                      <span className="goal-result__note">Amplía el horizonte para ver el punto</span>
+                    )}
+                  </>
+                )}
+                {dateTargetResult.type === 'past' && <span>La fecha está en el pasado</span>}
+                {dateTargetResult.type === 'far' && <span>Fecha a más de 20 años vista</span>}
+              </div>
+            )}
+          </div>
+
+          <div className="goal-item">
+            <label className="goal-label" htmlFor="ahorroObjetivo">
+              <span className="goal-dot goal-dot--savings" />
+              Ahorro objetivo
+            </label>
+            <div className="input-group">
+              <input
+                id="ahorroObjetivo"
+                type="number"
+                min={0}
+                step={1000}
+                value={ahorroObjetivo ?? ''}
+                placeholder="0"
+                onChange={e => setAhorroObjetivo(e.target.value === '' ? null : Number(e.target.value))}
+              />
+              <span className="suffix">€</span>
+            </div>
+            {savingsTargetResult && (
+              <div className={`goal-result${savingsTargetResult.type === 'found' ? ' goal-result--savings' : ' goal-result--warn'}`}>
+                {savingsTargetResult.type === 'found' && (
+                  <>
+                    <span className="goal-result__amount">{savingsTargetResult.dateLabel}</span>
+                    <span className="goal-result__label">con {savingsTargetResult.savings.toLocaleString('es-ES')}€ ahorrados</span>
+                    {!savingsTargetResult.inChartRange && (
+                      <span className="goal-result__note">Amplía el horizonte para ver el punto</span>
+                    )}
+                  </>
+                )}
+                {savingsTargetResult.type === 'already' && <span>¡Ya has alcanzado este objetivo!</span>}
+                {savingsTargetResult.type === 'unreachable' && <span>No alcanzable en 20 años con el ahorro actual</span>}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   )
