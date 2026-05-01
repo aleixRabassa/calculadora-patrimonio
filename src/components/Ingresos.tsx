@@ -551,23 +551,58 @@ export function Ingresos() {
           <ComposedChart data={chartData} margin={{ top: 8, right: 0, bottom: 8, left: 0 }}>
             <XAxis
               dataKey="mes"
-              tickFormatter={m => `${Math.floor(m / 12)}a`}
+              tickFormatter={m => {
+                if (horizonYears <= 2) {
+                  const d = new Date()
+                  d.setDate(1)
+                  d.setMonth(d.getMonth() + m)
+                  const raw = d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')
+                  const month = raw.charAt(0).toUpperCase() + raw.slice(1)
+                  const year = String(d.getFullYear()).slice(2)
+                  return `${month} ${year}`
+                }
+                const d2 = new Date()
+                d2.setDate(1)
+                d2.setMonth(d2.getMonth() + m)
+                return String(d2.getFullYear())
+              }}
               interval={xAxisInterval(horizonYears)}
               tick={{ fontSize: 12 }}
             />
             <YAxis
               yAxisId="salary"
               orientation="left"
-              tickFormatter={v => `${v}€`}
+              tickFormatter={v => {
+                if (v >= 1000) {
+                  const k = v / 1000
+                  const formatted = k.toFixed(1)
+                  return formatted.endsWith('.0')
+                    ? `${Math.round(k)}k€`
+                    : `${formatted.replace('.', ',')}k€`
+                }
+                return `${Math.round(v)}€`
+              }}
               tick={{ fontSize: 12 }}
-              width={70}
+              width={55}
+              domain={[
+                (min: number) => Math.floor(min / 100) * 100,
+                (max: number) => Math.ceil(max / 100) * 100,
+              ]}
             />
             <YAxis
               yAxisId="savings"
               orientation="right"
-              tickFormatter={v => `${(v / 1000).toFixed(0)}k€`}
+              tickFormatter={v => {
+                const k = v / 1000
+                const formatted = k.toFixed(0)
+                return `${formatted.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}k€`
+              }}
               tick={{ fontSize: 12 }}
               width={55}
+              domain={[
+                (min: number) => min >= 0 ? Math.floor(min * 0.9) : Math.floor(min * 1.1),
+                (max: number) => Math.ceil(max * 1.05),
+              ]}
             />
             <Tooltip content={(props) => <ChartTooltip {...(props as unknown as ChartTooltipProps)} chartData={chartData} />} />
             <Legend formatter={v => v === 'salarioNeto' ? 'Salario neto mensual' : 'Ahorro acumulado'} wrapperStyle={{ fontSize: 14, textAlign: 'center' }} />
