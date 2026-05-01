@@ -10,32 +10,18 @@ interface SubidaSalarial {
   nuevoBrutoAnual: number
 }
 
-interface GastoCategoria {
-  id: string
-  nombre: string
-  monto: number
-}
-
 interface IngresosState {
   brutoAnual: number
   gastosFijos: number
-  gastosCategories: GastoCategoria[]
   ahorroInicial: number
   subidas: SubidaSalarial[]
-  gastosCategoryExpanded?: boolean
 }
 
 const DEFAULT_STATE: IngresosState = {
   brutoAnual: 25_000,
   gastosFijos: 800,
-  gastosCategories: [
-    { id: crypto.randomUUID(), nombre: 'Vivienda', monto: 400 },
-    { id: crypto.randomUUID(), nombre: 'Alimentación', monto: 250 },
-    { id: crypto.randomUUID(), nombre: 'Transporte', monto: 150 },
-  ],
   ahorroInicial: 5_000,
   subidas: [],
-  gastosCategoryExpanded: false,
 }
 
 const MAX_HORIZONTE_MESES = 240 // 20 años
@@ -127,17 +113,9 @@ export function Ingresos() {
     const nextMes = state.subidas.length > 0
       ? Math.max(...state.subidas.map(s => s.mes)) + 12
       : 12
-    
-    // Calculate suggested value: last salary raise + 5000€, or initial salary + 5000€
-    let suggestedBruto = state.brutoAnual + 5_000
-    if (state.subidas.length > 0) {
-      const ultimaSubida = state.subidas.reduce((max, s) => s.mes > max.mes ? s : max)
-      suggestedBruto = ultimaSubida.nuevoBrutoAnual + 5_000
-    }
-    
     setState(prev => ({
       ...prev,
-      subidas: [...prev.subidas, { id: crypto.randomUUID(), mes: nextMes, nuevoBrutoAnual: suggestedBruto }],
+      subidas: [...prev.subidas, { id: crypto.randomUUID(), mes: nextMes, nuevoBrutoAnual: prev.brutoAnual + 2_000 }],
     }))
   }
 
@@ -152,44 +130,6 @@ export function Ingresos() {
     setState(prev => ({
       ...prev,
       subidas: prev.subidas.map(s => s.id === id ? { ...s, [field]: value } : s),
-    }))
-  }
-
-  const addGastoCategory = () => {
-    setState(prev => ({
-      ...prev,
-      gastosCategories: [...prev.gastosCategories, { id: crypto.randomUUID(), nombre: '', monto: 0 }],
-    }))
-  }
-
-  const removeGastoCategory = (id: string) => {
-    setState(prev => {
-      const updated = prev.gastosCategories.filter(g => g.id !== id)
-      const newTotal = updated.reduce((sum, g) => sum + g.monto, 0)
-      return {
-        ...prev,
-        gastosCategories: updated,
-        gastosFijos: newTotal,
-      }
-    })
-  }
-
-  const updateGastoCategory = (id: string, field: 'nombre' | 'monto', value: string | number) => {
-    setState(prev => {
-      const updated = prev.gastosCategories.map(g => g.id === id ? { ...g, [field]: field === 'monto' ? Number(value) : value } : g)
-      const newTotal = updated.reduce((sum, g) => sum + g.monto, 0)
-      return {
-        ...prev,
-        gastosCategories: updated,
-        gastosFijos: newTotal,
-      }
-    })
-  }
-
-  const toggleGastosCategoryExpanded = () => {
-    setState(prev => ({
-      ...prev,
-      gastosCategoryExpanded: !prev.gastosCategoryExpanded,
     }))
   }
 
@@ -234,49 +174,7 @@ export function Ingresos() {
             />
             <span className="suffix">€/mes</span>
           </div>
-          <button 
-            type="button" 
-            className="btn-desglose"
-            onClick={toggleGastosCategoryExpanded}
-          >
-            {state.gastosCategoryExpanded ? '▼ Ocultar desglose' : '▶ Ver desglose'}
-          </button>
         </div>
-
-        {state.gastosCategoryExpanded && (
-          <div className="gastos-desglose">
-            <div className="gastos-desglose__header">
-              <h4>Desglose de gastos</h4>
-              <button type="button" className="btn-add-small" onClick={addGastoCategory}>+ Categoría</button>
-            </div>
-            {state.gastosCategories.map(gasto => (
-              <div key={gasto.id} className="gasto-row">
-                <input
-                  type="text"
-                  placeholder="Nombre (ej: Vivienda)"
-                  value={gasto.nombre}
-                  onChange={e => updateGastoCategory(gasto.id, 'nombre', e.target.value)}
-                  className="gasto-nombre"
-                />
-                <div className="input-group gasto-monto">
-                  <input
-                    type="number"
-                    min={0}
-                    step={10}
-                    value={gasto.monto}
-                    onChange={e => updateGastoCategory(gasto.id, 'monto', e.target.value)}
-                  />
-                  <span className="suffix">€</span>
-                </div>
-                <button type="button" className="btn-remove" onClick={() => removeGastoCategory(gasto.id)}>✕</button>
-              </div>
-            ))}
-            <div className="gastos-desglose__total">
-              <strong>Total:</strong>
-              <span>{state.gastosFijos.toFixed(0)}€/mes</span>
-            </div>
-          </div>
-        )}
 
         <div className="field">
           <label htmlFor="ahorroInicial">Ahorro inicial</label>
