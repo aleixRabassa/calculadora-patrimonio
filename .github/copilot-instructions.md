@@ -78,6 +78,7 @@ Antes de implementar cualquier tarea no trivial:
 
 ## Key Conventions
 
+- **All code must be in English** — variable names, function names, component names, file names, CSS class names, TypeScript types/interfaces, comments, and any other identifier. The UI text shown to the user may be in Spanish, but all code identifiers must be English.
 - **`verbatimModuleSyntax` is enabled** — use `import type` for type-only imports.
 - **`noUnusedLocals` / `noUnusedParameters` are errors** — clean up unused symbols immediately.
 - **`erasableSyntaxOnly`** — avoid TypeScript syntax that can't be stripped (e.g. `const enum`, namespaces with runtime code).

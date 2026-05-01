@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Area, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularSalarioNeto } from '../utils/calculations'
@@ -24,15 +24,26 @@ const DEFAULT_STATE: IngresosState = {
   subidas: [],
 }
 
-const HORIZONTE_MESES = 120 // 10 años
+const MAX_HORIZONTE_MESES = 240 // 20 años
+const HORIZON_OPTIONS = [1, 2, 5, 10, 20] as const
+
+function xAxisInterval(years: number): number {
+  if (years <= 1) return 2   // every 3 months
+  if (years <= 2) return 5   // every 6 months
+  if (years <= 5) return 11  // every year
+  if (years <= 10) return 23 // every 2 years
+  return 47                  // every 4 years
+}
 
 export function Ingresos() {
   const [state, setState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_STATE)
+  const [horizonYears, setHorizonYears] = useState<number>(5)
 
   const netoInfo = calcularSalarioNeto(state.brutoAnual)
   const ahorroMensual = netoInfo.netoMensual - state.gastosFijos
 
   const chartData = useMemo(() => {
+    const horizonMeses = horizonYears * 12
     // Sort salary raises by month
     const subidasOrdenadas = [...state.subidas].sort((a, b) => a.mes - b.mes)
 
@@ -40,7 +51,7 @@ export function Ingresos() {
     let ahorroAcum = state.ahorroInicial
     let brutoActual = state.brutoAnual
 
-    for (let m = 0; m <= HORIZONTE_MESES; m++) {
+    for (let m = 0; m <= horizonMeses; m++) {
       // Check if there's a salary raise at this month
       const subida = subidasOrdenadas.find(s => s.mes === m)
       if (subida) {
@@ -64,7 +75,7 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.gastosFijos, state.ahorroInicial, state.subidas])
+  }, [state.brutoAnual, state.gastosFijos, state.ahorroInicial, state.subidas, horizonYears])
 
   const addSubida = () => {
     const nextMes = state.subidas.length > 0
@@ -170,7 +181,7 @@ export function Ingresos() {
                 <input
                   type="number"
                   min={1}
-                  max={HORIZONTE_MESES}
+                  max={MAX_HORIZONTE_MESES}
                   value={subida.mes}
                   onChange={e => updateSubida(subida.id, 'mes', Number(e.target.value))}
                 />
@@ -195,13 +206,27 @@ export function Ingresos() {
       </div>
 
       <div className="ingresos__charts">
-        <h3>Proyección a 10 años</h3>
+        <div className="charts__header">
+          <h3>Proyección a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</h3>
+          <div className="horizon-selector">
+            {HORIZON_OPTIONS.map(y => (
+              <button
+                key={y}
+                type="button"
+                className={`horizon-btn${horizonYears === y ? ' horizon-btn--active' : ''}`}
+                onClick={() => setHorizonYears(y)}
+              >
+                {y}a
+              </button>
+            ))}
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
             <XAxis
               dataKey="mes"
               tickFormatter={m => `${Math.floor(m / 12)}a`}
-              interval={23}
+              interval={xAxisInterval(horizonYears)}
               tick={{ fontSize: 12 }}
             />
             <YAxis

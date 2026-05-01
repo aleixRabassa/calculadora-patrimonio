@@ -190,6 +190,42 @@ input[type="number"] {
   padding-top: 8px;
 }
 
-.ingresos__charts h3 {
+.charts__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 16px;
+  gap: 12px;
+}
+
+.charts__header h3 {
+  margin: 0;
+}
+
+.horizon-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.horizon-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.horizon-btn--active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
