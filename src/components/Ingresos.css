@@ -445,7 +445,54 @@ input[type="date"] {
   margin-top: 2px;
 }
 
-/* Charts */
+/* Chart tooltip */
+.chart-tooltip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  min-width: 210px;
+  pointer-events: none;
+}
+
+.chart-tooltip__date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.chart-tooltip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-tooltip__label {
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+}
+
+.chart-tooltip__value {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
 .ingresos__charts {
   padding-top: 0;
 }

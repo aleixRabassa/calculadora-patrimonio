@@ -52,6 +52,57 @@ const DEFAULT_STATE: IngresosState = {
 const MAX_HORIZONTE_MESES = 240 // 20 años
 const HORIZON_OPTIONS = [1, 2, 5, 10, 20] as const
 
+interface ChartPoint {
+  mes: number
+  label: string
+  salarioNeto: number
+  ahorroAcumulado: number
+}
+
+interface ChartTooltipProps {
+  active?: boolean
+  payload?: ReadonlyArray<{ dataKey?: unknown; value?: unknown }>
+  label?: number
+  chartData: ChartPoint[]
+}
+
+function formatFutureMes(mesesDesdeHoy: number): string {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + mesesDesdeHoy)
+  const str = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function ChartTooltip({ active, payload, label, chartData }: ChartTooltipProps) {
+  if (!active || !payload?.length || label == null) return null
+  const point = chartData[label]
+  if (!point) return null
+
+  const salarioValue = payload.find(p => p.dataKey === 'salarioNeto')?.value
+  const ahorroValue = payload.find(p => p.dataKey === 'ahorroAcumulado')?.value
+
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip__date">{formatFutureMes(point.mes)}</div>
+      {typeof salarioValue === 'number' && (
+        <div className="chart-tooltip__row">
+          <span className="chart-tooltip__dot" style={{ background: 'var(--accent)' }} />
+          <span className="chart-tooltip__label">Salario neto</span>
+          <span className="chart-tooltip__value">{salarioValue.toLocaleString('es-ES')}€/mes</span>
+        </div>
+      )}
+      {typeof ahorroValue === 'number' && (
+        <div className="chart-tooltip__row">
+          <span className="chart-tooltip__dot" style={{ background: 'rgb(99, 200, 132)' }} />
+          <span className="chart-tooltip__label">Ahorro acumulado</span>
+          <span className="chart-tooltip__value">{ahorroValue.toLocaleString('es-ES')}€</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function xAxisInterval(years: number): number {
   if (years <= 1) return 2   // every 3 months
   if (years <= 2) return 5   // every 6 months
@@ -84,7 +135,7 @@ export function Ingresos() {
   // Full 20-year projection used for target calculations
   const fullProjection = useMemo(() => {
     const subidasOrdenadas = [...state.subidas].sort((a, b) => a.mes - b.mes)
-    const data: Array<{ mes: number; label: string; salarioNeto: number; ahorroAcumulado: number }> = []
+    const data: ChartPoint[] = []
     let ahorroAcum = state.ahorroInicial
     let brutoActual = state.brutoAnual
     const gastosMensuales = (state.gastos ?? []).reduce((sum, g) => sum + g.valor, 0)
@@ -392,12 +443,7 @@ export function Ingresos() {
               tick={{ fontSize: 12 }}
               width={55}
             />
-            <Tooltip
-              formatter={(value, name) =>
-                [name === 'salarioNeto' ? `${value}€/mes` : `${Number(value).toLocaleString()}€`, name === 'salarioNeto' ? 'Salario neto mensual' : 'Ahorro acumulado']
-              }
-              labelFormatter={m => chartData[m as number]?.label ?? ''}
-            />
+            <Tooltip content={(props) => <ChartTooltip {...(props as unknown as ChartTooltipProps)} chartData={chartData} />} />
             <Legend formatter={v => v === 'salarioNeto' ? 'Salario neto mensual' : 'Ahorro acumulado'} wrapperStyle={{ fontSize: 14, textAlign: 'center' }} />
             <Line
               yAxisId="salary"
