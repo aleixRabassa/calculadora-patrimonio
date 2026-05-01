@@ -497,6 +497,22 @@ input[type="date"] {
   padding-top: 0;
 }
 
+.ingresos__charts .recharts-wrapper,
+.ingresos__charts .recharts-wrapper *,
+.ingresos__charts .recharts-wrapper *:focus,
+.ingresos__charts .recharts-wrapper *:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.ingresos__charts .recharts-reference-dot circle,
+.ingresos__charts .recharts-area-area,
+.ingresos__charts .recharts-area-curve,
+.ingresos__charts .recharts-line-curve {
+  pointer-events: none;
+}
+
 .charts__header {
   display: flex;
   align-items: center;

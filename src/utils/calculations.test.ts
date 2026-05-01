@@ -13,6 +13,26 @@ describe('calcularSalarioNeto', () => {
     expect(r.netoMensual).toBe(0)
   })
 
+  test('retorna ceros para NaN', () => {
+    const r = calcularSalarioNeto(NaN)
+    expect(r.netoMensual).toBe(0)
+    expect(r.irpf).toBe(0)
+    expect(r.seguridadSocial).toBe(0)
+  })
+
+  test('retorna ceros para Infinity', () => {
+    const r = calcularSalarioNeto(Infinity)
+    expect(r.netoMensual).toBe(0)
+    expect(r.irpf).toBe(0)
+  })
+
+  test('salario muy bajo (~12k) tiene IRPF cero por reducción y mínimo personal', () => {
+    const r = calcularSalarioNeto(12_000)
+    expect(r.irpf).toBe(0)
+    expect(r.netoMensual).toBeGreaterThan(0)
+    expect(r.tipoEfectivoIRPF).toBe(0)
+  })
+
   test('salario bajo (~20k) tiene retención IRPF baja', () => {
     const r = calcularSalarioNeto(20_000)
     expect(r.netoMensual).toBeGreaterThan(0)
@@ -93,6 +113,19 @@ describe('calcularHipoteca', () => {
     expect(r.interesesTotales).toBe(0)
   })
 
+  test('retorna ceros si la entrada es igual al precio (capital = 0)', () => {
+    const r = calcularHipoteca(100_000, 100_000, 3, 25)
+    expect(r.capital).toBe(0)
+    expect(r.cuotaMensual).toBe(0)
+    expect(r.totalPagado).toBe(0)
+  })
+
+  test('retorna ceros para tipo de interés negativo', () => {
+    const r = calcularHipoteca(200_000, 40_000, -1, 30)
+    expect(r.cuotaMensual).toBe(0)
+    expect(r.totalPagado).toBe(0)
+  })
+
   test('retorna ceros si el plazo es cero', () => {
     const r = calcularHipoteca(200_000, 50_000, 3, 0)
     expect(r.cuotaMensual).toBe(0)
@@ -164,6 +197,26 @@ describe('calcularInversion', () => {
   test('retorna ceros para aportación mensual negativa', () => {
     const r = calcularInversion(5_000, -100, 7, 10)
     expect(r.valorFinal).toBe(0)
+  })
+
+  test('retorna ceros para tipo de interés negativo', () => {
+    const r = calcularInversion(10_000, 200, -1, 20)
+    expect(r.valorFinal).toBe(0)
+    expect(r.capitalInvertido).toBe(0)
+    expect(r.interesesGenerados).toBe(0)
+  })
+
+  test('retorna ceros para plazo negativo', () => {
+    const r = calcularInversion(10_000, 200, 7, -5)
+    expect(r.valorFinal).toBe(0)
+    expect(r.capitalInvertido).toBe(0)
+  })
+
+  test('sin capital inicial ni aportaciones, valorFinal es cero', () => {
+    const r = calcularInversion(0, 0, 7, 10)
+    expect(r.valorFinal).toBeCloseTo(0, 5)
+    expect(r.capitalInvertido).toBe(0)
+    expect(r.interesesGenerados).toBeCloseTo(0, 5)
   })
 })
 
