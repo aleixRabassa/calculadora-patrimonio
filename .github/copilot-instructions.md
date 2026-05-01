@@ -98,6 +98,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 - **Number inputs**: use `type="number"` as-is. Browsers do not reliably show thousands separators in number inputs; this is acceptable.
 - **Chart axes**: exempt — compact labels (e.g. `14k€`) are acceptable there.
 - **Percentages**: use `.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })` so decimals render with a comma (e.g. `18,3%`). Plain `.toFixed(1)` is only acceptable when the value is embedded in a non-locale-sensitive context.
+- **Date strings**: when formatting dates with `toLocaleDateString('es-ES', ...)`, always capitalize the first character — Spanish locale returns lowercase month names (e.g. `"mayo de 2026"`), so apply `.charAt(0).toUpperCase() + str.slice(1)` to get `"Mayo de 2026"`.
 
 ## Important Rules
 

@@ -50,11 +50,10 @@ function HipotecaChartTooltip({ active, payload, label, chartData }: ChartToolti
   const principal = payload.find(p => p.dataKey === 'accumulatedPrincipal')?.value
   const interest = payload.find(p => p.dataKey === 'accumulatedInterest')?.value
 
-  const years = Math.floor(point.month / 12)
-  const months = point.month % 12
-  const timeLabel = years > 0
-    ? `Año ${years}${months > 0 ? `, mes ${months}` : ''}`
-    : `Mes ${months}`
+  const now = new Date()
+  const date = new Date(now.getFullYear(), now.getMonth() + point.month, 1)
+  const rawLabel = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  const timeLabel = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
 
   return (
     <div className="chart-tooltip">
