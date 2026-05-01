@@ -37,7 +37,7 @@
 
 .input-group {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
 }
 
@@ -47,14 +47,17 @@
 }
 
 .input-group .suffix {
+  display: flex;
+  align-items: center;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-left: none;
-  padding: 8px 10px;
+  padding: 0 10px;
   font-size: 13px;
   color: var(--text);
   border-radius: 0 6px 6px 0;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 input[type="number"],
