@@ -22,7 +22,7 @@ const DEFAULT_STATE: HipotecaState = {
   parkingPrice: 0,
   financingPct: 80,
   itpPct: 10,
-  termYears: 30,
+  termYears: 25,
   interestRate: 3,
 }
 
@@ -91,7 +91,8 @@ export function Hipoteca() {
   const financedAmount = totalPrice * (state.financingPct / 100)
   const downPayment = totalPrice - financedAmount
   const itpAmount = totalPrice * (state.itpPct / 100)
-  const totalEntry = downPayment + itpAmount
+  const purchaseCosts = totalPrice * 0.01
+  const totalEntry = downPayment + itpAmount + purchaseCosts
 
   const hipoteca = calcularHipoteca(totalPrice, downPayment, state.interestRate, state.termYears)
 
@@ -103,6 +104,8 @@ export function Hipoteca() {
       month: idx,
     }))
   }, [hipoteca.capital, state.interestRate, state.termYears])
+
+  const startYear = new Date().getFullYear()
 
   const xInterval = (() => {
     if (state.termYears <= 5) return 11
@@ -133,7 +136,7 @@ export function Hipoteca() {
         </div>
 
         <div className="field">
-          <label htmlFor="parkingPrice">Parking + Trastero</label>
+          <label htmlFor="parkingPrice">Precio del parking/trastero</label>
           <div className="input-group">
             <input
               id="parkingPrice"
@@ -154,7 +157,7 @@ export function Hipoteca() {
             <input
               id="financingPct"
               type="range"
-              min={0}
+              min={50}
               max={100}
               step={1}
               value={state.financingPct}
@@ -185,25 +188,24 @@ export function Hipoteca() {
           <div className="computed-value">
             {fmt(totalEntry)} €
             <span className="detail">
-              Aportación propia {fmt(downPayment)} € + ITP {fmt(itpAmount)} €
+              Aportación propia {fmt(downPayment)} € + ITP {fmt(itpAmount)} € + Gastos {fmt(purchaseCosts)} €
             </span>
           </div>
         </div>
 
-        <div className="field">
+        <div className="slider-field">
           <label htmlFor="termYears">Plazo de la hipoteca</label>
-          <div className="input-group">
+          <div className="slider-row">
             <input
               id="termYears"
-              type="number"
-              min={1}
+              type="range"
+              min={10}
               max={40}
               step={1}
               value={state.termYears}
-              onFocus={e => e.target.select()}
               onChange={e => setState(prev => ({ ...prev, termYears: Number(e.target.value) }))}
             />
-            <span className="suffix">años</span>
+            <span className="slider-value">{state.termYears} años</span>
           </div>
         </div>
 
@@ -238,21 +240,21 @@ export function Hipoteca() {
         <h3>Amortización a {state.termYears} años</h3>
         {chartData.length > 0 && (
           <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 0, bottom: 8, left: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
               <XAxis
                 dataKey="month"
                 tickFormatter={m => {
                   const realMonth = chartData[m]?.month ?? m
                   const originalMonth = Math.round((realMonth / (chartData.length - 1)) * state.termYears * 12)
-                  return `${Math.round(originalMonth / 12)}a`
+                  return String(startYear + Math.round(originalMonth / 12))
                 }}
                 interval={xInterval}
                 tick={{ fontSize: 12, dy: 5 }}
               />
               <YAxis
                 tickFormatter={v => {
-                  const k = v / 1000
-                  return `${Math.round(k)}k€`
+                  if (v === 0) return '0€'
+                  return `${Math.round(v / 1000)}k€`
                 }}
                 tick={{ fontSize: 12 }}
                 width={55}
