@@ -312,8 +312,6 @@ input[type="date"] {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -329,6 +327,7 @@ input[type="date"] {
 .goal-label {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 13px;
   font-weight: 500;

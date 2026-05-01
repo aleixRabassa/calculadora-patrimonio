@@ -129,7 +129,8 @@ export function Ingresos() {
     if (idx === -1) return { type: 'unreachable' as const }
     const today = new Date()
     const resultDate = new Date(today.getFullYear(), today.getMonth() + idx, 1)
-    const dateLabel = resultDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    const rawLabel = resultDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    const dateLabel = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
     return {
       type: 'found' as const,
       mes: idx,
@@ -360,7 +361,7 @@ export function Ingresos() {
               }
               labelFormatter={m => chartData[m as number]?.label ?? ''}
             />
-            <Legend formatter={v => v === 'salarioNeto' ? 'Salario neto mensual' : 'Ahorro acumulado'} />
+            <Legend formatter={v => v === 'salarioNeto' ? 'Salario neto mensual' : 'Ahorro acumulado'} wrapperStyle={{ fontSize: 14, textAlign: 'center' }} />
             <Line
               yAxisId="salary"
               type="stepAfter"
