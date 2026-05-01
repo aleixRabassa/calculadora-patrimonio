@@ -86,6 +86,19 @@ Antes de implementar cualquier tarea no trivial:
 - New hooks go in `src/hooks/`. Components will go in `src/components/` when created.
 - The ESLint config enforces `react-hooks` rules (exhaustive deps). Don't disable them.
 
+### Number formatting
+
+All monetary and numeric values visible to the user must use Spanish number formatting: dot `.` for thousands separator, comma `,` for decimal separator. Use `toLocaleString('es-ES')` or the shared `fmt` helper defined per component:
+
+```ts
+const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
+```
+
+- **Computed/display values**: always use `fmt(value)` — never raw `.toFixed(0)`.
+- **Number inputs**: use `type="text"` with a formatting/parsing layer so the displayed value also uses dots for thousands. Do **not** use `type="number"` for monetary fields.
+- **Chart axes**: exempt — compact labels (e.g. `14k€`) are acceptable there.
+- **Percentages**: use `.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })` so decimals render with a comma (e.g. `18,3%`). Plain `.toFixed(1)` is only acceptable when the value is embedded in a non-locale-sensitive context.
+
 ## Important Rules
 
 - **NEVER make git commits**. Never use `git commit`, `git push`, or any other git commands that modify the repository. The user is responsible for all git operations.

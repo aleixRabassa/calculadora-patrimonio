@@ -5,6 +5,8 @@ import { calcularSalarioNeto } from '../utils/calculations'
 import type { Country } from '../utils/calculations'
 import './Ingresos.css'
 
+const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
+
 interface SubidaSalarial {
   id: string
   mes: number // mes desde hoy (0 = ahora)
@@ -302,12 +304,12 @@ export function Ingresos() {
             </div>
           </div>
           <div className="computed-value">
-            {netoInfo.netoMensual.toFixed(0)} €/mes
+            {fmt(netoInfo.netoMensual)} €/mes
           </div>
           <label className="computed-sublabel">Salario neto anual</label>
           <div className="computed-value">
-            {netoInfo.netoAnual.toFixed(0)} €/año
-            <span className="detail">IRPF efectivo: {netoInfo.tipoEfectivoIRPF.toFixed(1)}% · Total retenido: {(netoInfo.irpf + netoInfo.seguridadSocial).toFixed(0)} €</span>
+            {fmt(netoInfo.netoAnual)} €/año
+            <span className="detail">IRPF efectivo: {netoInfo.tipoEfectivoIRPF.toFixed(1)}% · Total retenido: {fmt(netoInfo.irpf + netoInfo.seguridadSocial)} €</span>
           </div>
         </div>
 
@@ -320,7 +322,7 @@ export function Ingresos() {
           >
             <div className="gastos__title">
               <h3>Gastos mensuales</h3>
-              <span className="gastos__total">{totalGastos.toFixed(0)} €/mes</span>
+              <span className="gastos__total">{fmt(totalGastos)} €/mes</span>
             </div>
             <span className={`gastos__toggle${gastosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
           </button>
@@ -374,7 +376,7 @@ export function Ingresos() {
         <div className="field field--computed">
           <label>Ahorro mensual</label>
           <div className={`computed-value ${ahorroMensual < 0 ? 'computed-value--negative' : ''}`}>
-            {ahorroMensual.toFixed(0)} €/mes
+            {fmt(ahorroMensual)} €/mes
           </div>
         </div>
 
