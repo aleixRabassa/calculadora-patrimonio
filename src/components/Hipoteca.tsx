@@ -7,7 +7,7 @@ import {
   generateAmortizationSchedule,
   generateAmortizationScheduleWithContributions,
 } from '../utils/calculations'
-import type { Country } from '../utils/calculations'
+import type { Country, ScheduledContribution } from '../utils/calculations'
 import './Hipoteca.css'
 import './Ingresos.css'
 
@@ -170,21 +170,41 @@ export function Hipoteca() {
 
   // Contribution totals
   const annualExtraPayment = state.annualContribution ?? 0
-  const hasContributions = annualExtraPayment > 0
+  const extraordinaryList = state.extraordinaryContributions ?? []
+  const hasContributions = annualExtraPayment > 0 || extraordinaryList.some(c => c.importe > 0)
 
   // Enhanced amortization schedule (with contributions applied annually on Jan 1st)
   const enhancedSchedule = useMemo(() => {
     if (!hasContributions || hipoteca.capital <= 0) return null
+
+    const now = new Date()
+    const loanStartMonth = now.getMonth()
+    const loanStartYear = now.getFullYear()
+
+    const scheduledContributions: ScheduledContribution[] = (state.extraordinaryContributions ?? [])
+      .filter(c => c.importe > 0)
+      .flatMap(c => {
+        const parts = c.fecha.split('/')
+        if (parts.length !== 2) return []
+        const month0 = parseInt(parts[0], 10) - 1
+        const year = parseInt(parts[1], 10)
+        if (isNaN(month0) || isNaN(year) || month0 < 0 || month0 > 11) return []
+        const offset = (year - loanStartYear) * 12 + (month0 - loanStartMonth)
+        if (offset <= 0 || offset > state.termYears * 12) return []
+        return [{ month: offset, amount: c.importe }]
+      })
+
     return generateAmortizationScheduleWithContributions(
       hipoteca.capital,
       state.interestRate,
       state.termYears,
       annualExtraPayment,
       0,
-      new Date().getMonth(),
+      loanStartMonth,
       state.amortizationType,
+      scheduledContributions,
     )
-  }, [hasContributions, hipoteca.capital, state.interestRate, state.termYears, annualExtraPayment, state.amortizationType])
+  }, [hasContributions, hipoteca.capital, state.interestRate, state.termYears, annualExtraPayment, state.amortizationType, state.extraordinaryContributions])
 
   // Savings vs original schedule
   const payoffInfo = useMemo(() => {
@@ -259,7 +279,6 @@ export function Hipoteca() {
 
   // --- Contribution handlers ---
   const [extraordinaryExpanded, setExtraordinaryExpanded] = useState(false)
-  const extraordinaryList = state.extraordinaryContributions ?? []
   const totalExtraordinary = extraordinaryList.reduce((sum, c) => sum + c.importe, 0)
 
   const addExtraordinaryContribution = () => {

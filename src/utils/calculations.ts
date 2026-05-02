@@ -264,6 +264,12 @@ export function generateAmortizationSchedule(
  * @param loanStartMonth - Month the loan starts (0 = January, 11 = December)
  * @param amortizationType - 'plazo': keep payment, reduce term (default); 'cuota': keep term, reduce payment
  */
+export interface ScheduledContribution {
+  /** 1-based month offset from loan start (e.g. 12 = one year after loan start) */
+  month: number
+  amount: number
+}
+
 export function generateAmortizationScheduleWithContributions(
   capital: number,
   interestTIN: number,
@@ -272,6 +278,7 @@ export function generateAmortizationScheduleWithContributions(
   extraFirstJan: number,
   loanStartMonth: number,
   amortizationType: 'plazo' | 'cuota' = 'plazo',
+  scheduledContributions: ReadonlyArray<ScheduledContribution> = [],
 ): AmortizationPoint[] {
   if (
     !isFinite(capital) || capital <= 0 ||
@@ -316,6 +323,24 @@ export function generateAmortizationScheduleWithContributions(
         accPrincipal += actualLumpSum
 
         // In cuota mode: recalculate monthly payment for the remaining fixed term
+        if (amortizationType === 'cuota' && outstanding > 0.01) {
+          const remaining = n - m
+          if (remaining > 0) {
+            monthlyPayment = r === 0
+              ? outstanding / remaining
+              : (outstanding * r * Math.pow(1 + r, remaining)) / (Math.pow(1 + r, remaining) - 1)
+          }
+        }
+      }
+    }
+
+    // Apply extraordinary (scheduled) contributions for this month
+    for (const sc of scheduledContributions) {
+      if (sc.month === m && outstanding > 0.01) {
+        const actual = Math.min(sc.amount, outstanding)
+        outstanding -= actual
+        accPrincipal += actual
+
         if (amortizationType === 'cuota' && outstanding > 0.01) {
           const remaining = n - m
           if (remaining > 0) {

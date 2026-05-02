@@ -500,3 +500,64 @@ describe('generateAmortizationScheduleWithContributions - cuota mode', () => {
     expect(plazoSaved).toBeGreaterThan(cuotaSaved)
   })
 })
+
+describe('generateAmortizationScheduleWithContributions - scheduled (extraordinary) contributions', () => {
+  test('a scheduled contribution at month 6 reduces outstanding from that point', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withExtra = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'plazo', [
+      { month: 6, amount: 20_000 },
+    ])
+    const baseAt6 = base.find(p => p.month === 6)!
+    const extraAt6 = withExtra.find(p => p.month === 6)!
+    expect(extraAt6.outstandingPrincipal).toBeLessThan(baseAt6.outstandingPrincipal)
+    expect(extraAt6.accumulatedPrincipal).toBeGreaterThan(baseAt6.accumulatedPrincipal)
+  })
+
+  test('scheduled contribution reduces total term in plazo mode', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withExtra = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'plazo', [
+      { month: 12, amount: 30_000 },
+    ])
+    expect(withExtra.length).toBeLessThan(base.length)
+  })
+
+  test('multiple scheduled contributions are all applied', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withExtra = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'plazo', [
+      { month: 12, amount: 10_000 },
+      { month: 24, amount: 10_000 },
+    ])
+    const baseLast = base[base.length - 1]
+    const extraLast = withExtra[withExtra.length - 1]
+    expect(extraLast.accumulatedInterest).toBeLessThan(baseLast.accumulatedInterest)
+    expect(withExtra.length).toBeLessThan(base.length)
+  })
+
+  test('scheduled contribution in cuota mode lowers monthly payment after the contribution', () => {
+    const base = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'cuota')
+    const withExtra = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'cuota', [
+      { month: 12, amount: 20_000 },
+    ])
+    // After contribution in cuota mode, outstanding at month 13 should be lower
+    const baseAt13 = base.find(p => p.month === 13)!
+    const extraAt13 = withExtra.find(p => p.month === 13)!
+    expect(extraAt13.outstandingPrincipal).toBeLessThan(baseAt13.outstandingPrincipal)
+  })
+
+  test('scheduled contribution beyond term is ignored', () => {
+    const base = generateAmortizationSchedule(160_000, 3, 25)
+    const withExtra = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'plazo', [
+      { month: 99999, amount: 50_000 },
+    ])
+    expect(withExtra.length).toBe(base.length)
+  })
+
+  test('contribution larger than outstanding only reduces to zero', () => {
+    const withExtra = generateAmortizationScheduleWithContributions(160_000, 3, 25, 0, 0, 0, 'plazo', [
+      { month: 12, amount: 999_999 },
+    ])
+    const last = withExtra[withExtra.length - 1]
+    expect(last.outstandingPrincipal).toBeCloseTo(0, 0)
+    expect(last.accumulatedPrincipal).toBeCloseTo(160_000, 0)
+  })
+})
