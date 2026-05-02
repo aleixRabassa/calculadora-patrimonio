@@ -7,6 +7,7 @@ import './Ingresos.css'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const truncate = (str: string, max = 15) => str.length > max ? `${str.slice(0, max)}…` : str
 
 const HORIZON_OPTIONS = [1, 2, 5, 10, 20, 30] as const
 
@@ -77,7 +78,7 @@ function InversionChartTooltip({ active, payload, label, inversiones }: ChartToo
         return (
           <div key={inv.id} className="chart-tooltip__row">
             <span className="chart-tooltip__dot" style={{ background: inv.color }} />
-            <span className="chart-tooltip__label">{inv.descripcion || 'Sin nombre'}</span>
+            <span className="chart-tooltip__label">{truncate(inv.descripcion || 'Sin nombre')}</span>
             <span className="chart-tooltip__value">{fmt(val)} €</span>
           </div>
         )
@@ -278,7 +279,7 @@ export function Inversion() {
                 formatter={v => {
                   if (v === 'totalContributed') return 'Total aportado'
                   const inv = inversiones.find(i => `inv_${i.id}` === v)
-                  return inv?.descripcion || 'Inversión'
+                  return truncate(inv?.descripcion || 'Inversión')
                 }}
                 wrapperStyle={{ fontSize: 13, textAlign: 'center', width: '100%', left: 0 }}
               />

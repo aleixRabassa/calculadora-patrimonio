@@ -197,8 +197,147 @@
   }
 }
 
-.segmented-control__option--active {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 500;
+/* Amortization schedule panel */
+.schedule-panel {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
 }
+
+.schedule-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--sans, sans-serif);
+  text-align: left;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.schedule-panel__toggle {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.5;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.schedule-panel__toggle--open {
+  transform: rotate(180deg);
+}
+
+.schedule-panel__body {
+  max-height: 420px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+
+  thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card, var(--bg));
+    z-index: 1;
+
+    th {
+      padding: 8px 10px;
+      text-align: right;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+
+      &:first-child {
+        text-align: center;
+      }
+
+      &:nth-child(2) {
+        text-align: left;
+      }
+    }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.1s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td {
+    padding: 6px 10px;
+    text-align: right;
+    color: var(--text);
+    white-space: nowrap;
+  }
+}
+
+.schedule-table__num {
+  text-align: center !important;
+  color: var(--text) !important;
+  opacity: 0.5;
+}
+
+.schedule-table__amount {
+  color: rgb(99, 200, 132) !important;
+}
+
+.schedule-table__interest {
+  color: #f6ad55 !important;
+}
+
+.schedule-table__outstanding {
+  font-family: var(--mono) !important;
+}
+
+.schedule-table td:nth-child(2) {
+  text-align: left;
+  opacity: 0.8;
+}
+
+.schedule-table__year-summary {
+  background: rgba(255, 255, 255, 0.04);
+  border-top: 1px solid var(--border) !important;
+  border-bottom: 2px solid var(--border) !important;
+
+  td {
+    padding: 7px 10px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.schedule-table__year-label {
+  text-align: left !important;
+  opacity: 0.6;
+}
+
+.schedule-table__year-summary td:not(.schedule-table__year-label) {
+  text-align: right !important;
+  opacity: 1 !important;
+}
+

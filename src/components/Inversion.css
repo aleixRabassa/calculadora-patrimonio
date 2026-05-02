@@ -99,6 +99,9 @@
   color: var(--text-h);
   box-sizing: border-box;
   transition: border-color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &:focus {
     outline: none;

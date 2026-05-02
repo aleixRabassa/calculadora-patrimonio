@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Area, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import {
@@ -12,6 +13,7 @@ import './Hipoteca.css'
 import './Ingresos.css'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
+const fmtDec = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 interface ExtraordinaryContribution {
@@ -276,6 +278,26 @@ export function Hipoteca() {
     if (state.termYears <= 20) return 47
     return 59
   })()
+
+  // --- Amortization schedule table ---
+  const [scheduleExpanded, setScheduleExpanded] = useState(false)
+
+  const detailedSchedule = useMemo(() => {
+    const schedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
+    const now = new Date()
+    return schedule.slice(1).map((point, i) => {
+      const prev = schedule[i]
+      const date = new Date(now.getFullYear(), now.getMonth() + point.month, 1)
+      const rawLabel = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
+      return {
+        num: point.month,
+        date: rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1),
+        principal: point.accumulatedPrincipal - prev.accumulatedPrincipal,
+        interest: point.accumulatedInterest - prev.accumulatedInterest,
+        outstanding: point.outstandingPrincipal,
+      }
+    })
+  }, [hipoteca.capital, state.interestRate, state.termYears])
 
   // --- Contribution handlers ---
   const [extraordinaryExpanded, setExtraordinaryExpanded] = useState(false)
@@ -680,6 +702,73 @@ export function Hipoteca() {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Amortization schedule table */}
+        {detailedSchedule.length > 0 && (
+          <div className="schedule-panel">
+            <button
+              type="button"
+              className="schedule-panel__header"
+              onClick={() => setScheduleExpanded(prev => !prev)}
+              aria-expanded={scheduleExpanded}
+            >
+              <span>Simulación de cuotas</span>
+              <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>
+            </button>
+            {scheduleExpanded && (
+              <div className="schedule-panel__body">
+                <table className="schedule-table">
+                  <thead>
+                    <tr>
+                      <th>Nº</th>
+                      <th>Fecha</th>
+                      <th>Amortización</th>
+                      <th>Intereses</th>
+                      <th>Capital pendiente</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const rows: ReactNode[] = []
+                      let yearPrincipal = 0
+                      let yearInterest = 0
+                      for (let i = 0; i < detailedSchedule.length; i++) {
+                        const row = detailedSchedule[i]
+                        yearPrincipal += row.principal
+                        yearInterest += row.interest
+                        rows.push(
+                          <tr key={row.num}>
+                            <td className="schedule-table__num">{row.num}</td>
+                            <td>{row.date}</td>
+                            <td className="schedule-table__amount">{fmtDec(row.principal)} €</td>
+                            <td className="schedule-table__interest">{fmtDec(row.interest)} €</td>
+                            <td className="schedule-table__outstanding">{fmtDec(row.outstanding)} €</td>
+                          </tr>
+                        )
+                        const isLastRow = i === detailedSchedule.length - 1
+                        if (row.num % 12 === 0 || isLastRow) {
+                          const yearNum = Math.ceil(row.num / 12)
+                          rows.push(
+                            <tr key={`year-${yearNum}`} className="schedule-table__year-summary">
+                              <td className="schedule-table__year-label">Año {yearNum}</td>
+                              <td />
+                              <td className="schedule-table__amount">{fmtDec(yearPrincipal)} €</td>
+                              <td className="schedule-table__interest">{fmtDec(yearInterest)} €</td>
+                              <td className="schedule-table__outstanding">{fmtDec(row.outstanding)} €</td>
+                            </tr>
+                          )
+                          yearPrincipal = 0
+                          yearInterest = 0
+                        }
+                      }
+                      return rows
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

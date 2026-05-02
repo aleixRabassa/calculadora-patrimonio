@@ -253,6 +253,9 @@ input[type="date"] {
   box-sizing: border-box;
   transition: border-color 0.2s;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &:focus {
     outline: none;
