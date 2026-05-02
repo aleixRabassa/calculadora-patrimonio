@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Area, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { generateInvestmentSchedule } from '../utils/calculations'
@@ -10,8 +10,10 @@ const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits:
 
 const HORIZON_OPTIONS = [1, 2, 5, 10, 20, 30] as const
 
-const DEFAULT_COLORS = [
-  '#7c3aed', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316',
+const PALETTE_COLORS = [
+  '#7c3aed', '#6366f1', '#3b82f6', '#06b6d4',
+  '#10b981', '#84cc16', '#f59e0b', '#f97316',
+  '#ef4444', '#f43f5e', '#ec4899', '#14b8a6',
 ]
 
 interface InvestmentItem {
@@ -106,6 +108,18 @@ function xAxisInterval(years: number): number {
 export function Inversion() {
   const [state, setState] = useLocalStorage<InversionState>('calc.inversion', DEFAULT_STATE)
   const [horizonYears, setHorizonYears] = useState<number>(10)
+  const [openColorId, setOpenColorId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!openColorId) return
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.color-picker-wrapper')) {
+        setOpenColorId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openColorId])
 
   const inversiones = useMemo(() => state.inversiones ?? [], [state.inversiones])
   const months = horizonYears * 12
@@ -146,7 +160,7 @@ export function Inversion() {
   const totalReturns = totalFinalValue - totalContributed
 
   const addInversion = () => {
-    const colorIdx = inversiones.length % DEFAULT_COLORS.length
+    const colorIdx = inversiones.length % PALETTE_COLORS.length
     setState(prev => ({
       ...prev,
       inversiones: [...(prev.inversiones ?? []), {
@@ -155,7 +169,7 @@ export function Inversion() {
         capitalInicial: 0,
         aportacionMensual: 0,
         rentabilidadAnual: 7,
-        color: DEFAULT_COLORS[colorIdx],
+        color: PALETTE_COLORS[colorIdx],
       }],
     }))
   }
@@ -310,13 +324,27 @@ export function Inversion() {
               return (
                 <tr key={inv.id}>
                   <td>
-                    <input
-                      type="color"
-                      className="inversion-color"
-                      value={inv.color}
-                      onChange={e => updateInversion(inv.id, 'color', e.target.value)}
-                      title="Color en el gráfico"
-                    />
+                    <div className="color-picker-wrapper">
+                      <button
+                        className="inversion-color"
+                        style={{ background: inv.color }}
+                        onClick={() => setOpenColorId(openColorId === inv.id ? null : inv.id)}
+                        aria-label="Seleccionar color"
+                      />
+                      {openColorId === inv.id && (
+                        <div className="color-picker-popover">
+                          {PALETTE_COLORS.map(c => (
+                            <button
+                              key={c}
+                              className={`color-swatch${inv.color === c ? ' color-swatch--active' : ''}`}
+                              style={{ background: c }}
+                              onClick={() => { updateInversion(inv.id, 'color', c); setOpenColorId(null) }}
+                              aria-label={`Color ${c}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <input

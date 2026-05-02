@@ -127,7 +127,11 @@
 }
 
 .inversion-table__col--num {
-  text-align: right !important;
+  text-align: right;
+}
+
+.inversion-table thead th.inversion-table__col--num {
+  text-align: left;
 }
 
 .inversion-table__col--color {
@@ -155,12 +159,7 @@
   vertical-align: middle;
 }
 
-.inversion-table td .input-group {
-  justify-content: flex-end;
-}
-
 .inversion-table td .input-group input {
-  max-width: 90px;
   text-align: right;
 }
 
@@ -201,6 +200,13 @@
   color: var(--accent);
 }
 
+.color-picker-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .inversion-color {
   width: 28px;
   height: 28px;
@@ -209,23 +215,47 @@
   padding: 0;
   cursor: pointer;
   flex-shrink: 0;
-  -webkit-appearance: none;
-  appearance: none;
-  background: none;
+  transition: border-color 0.15s, transform 0.1s;
 
-  &::-webkit-color-swatch-wrapper {
-    padding: 0;
+  &:hover {
+    border-color: var(--text);
+    transform: scale(1.1);
   }
+}
 
-  &::-webkit-color-swatch {
-    border: none;
-    border-radius: 50%;
-  }
+.color-picker-popover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  width: 130px;
+}
 
-  &::-moz-color-swatch {
-    border: none;
-    border-radius: 50%;
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+
+  &:hover {
+    transform: scale(1.15);
   }
+}
+
+.color-swatch--active {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text-h);
 }
 
 /* Chart area */
