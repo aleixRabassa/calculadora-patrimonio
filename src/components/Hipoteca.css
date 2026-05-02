@@ -197,6 +197,12 @@
   }
 }
 
+.segmented-control__option--active {
+  background: rgba(168, 128, 255, 0.15);
+  color: rgb(168, 128, 255);
+  font-weight: 600;
+}
+
 /* Amortization schedule panel */
 .schedule-panel {
   margin-top: 12px;
@@ -224,6 +230,36 @@
   &:hover {
     background: rgba(255, 255, 255, 0.04);
   }
+}
+
+.schedule-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.schedule-panel__amort-toggle {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: var(--sans, sans-serif);
+  white-space: nowrap;
+
+  &:hover:not(.schedule-panel__amort-toggle--active) {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.schedule-panel__amort-toggle--active {
+  background: rgba(168, 128, 255, 0.15);
+  color: rgb(168, 128, 255);
+  font-weight: 600;
+  border-color: rgb(168, 128, 255);
 }
 
 .schedule-panel__toggle {

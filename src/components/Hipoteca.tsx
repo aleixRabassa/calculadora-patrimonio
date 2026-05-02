@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Area, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
@@ -281,9 +281,43 @@ export function Hipoteca() {
 
   // --- Amortization schedule table ---
   const [scheduleExpanded, setScheduleExpanded] = useState(false)
+  const [includeAmortizations, setIncludeAmortizations] = useState(true)
+
+  // Track slider dragging state to defer schedule recalc until release
+  const slidingRef = useRef(false)
+  const [committedSliderState, setCommittedSliderState] = useState({
+    interestRate: state.interestRate,
+    termYears: state.termYears,
+    financingPct: state.financingPct,
+  })
+
+  // Sync committed state when not sliding (e.g. numeric input changes)
+  useEffect(() => {
+    if (!slidingRef.current) {
+      setCommittedSliderState({
+        interestRate: state.interestRate,
+        termYears: state.termYears,
+        financingPct: state.financingPct,
+      })
+    }
+  }, [state.interestRate, state.termYears, state.financingPct])
+
+  const handleSliderCommit = () => {
+    slidingRef.current = false
+    setCommittedSliderState({
+      interestRate: state.interestRate,
+      termYears: state.termYears,
+      financingPct: state.financingPct,
+    })
+  }
+
+  const committedCapital = (state.propertyPrice + state.parkingPrice) * (committedSliderState.financingPct / 100)
 
   const detailedSchedule = useMemo(() => {
-    const schedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
+    const useEnhanced = includeAmortizations && enhancedSchedule && enhancedSchedule.length > 0
+    const schedule = useEnhanced
+      ? enhancedSchedule
+      : generateAmortizationSchedule(committedCapital, committedSliderState.interestRate, committedSliderState.termYears)
     const now = new Date()
     return schedule.slice(1).map((point, i) => {
       const prev = schedule[i]
@@ -297,7 +331,7 @@ export function Hipoteca() {
         outstanding: point.outstandingPrincipal,
       }
     })
-  }, [hipoteca.capital, state.interestRate, state.termYears])
+  }, [committedCapital, committedSliderState.interestRate, committedSliderState.termYears, includeAmortizations, enhancedSchedule])
 
   // --- Contribution handlers ---
   const [extraordinaryExpanded, setExtraordinaryExpanded] = useState(false)
@@ -385,6 +419,8 @@ export function Hipoteca() {
               max={100}
               step={1}
               value={state.financingPct}
+              onPointerDown={() => { slidingRef.current = true }}
+              onPointerUp={handleSliderCommit}
               onChange={e => setState(prev => ({ ...prev, financingPct: Number(e.target.value) }))}
             />
             <span className="slider-value">{state.financingPct}%</span>
@@ -427,6 +463,8 @@ export function Hipoteca() {
               max={40}
               step={1}
               value={state.termYears}
+              onPointerDown={() => { slidingRef.current = true }}
+              onPointerUp={handleSliderCommit}
               onChange={e => setState(prev => ({ ...prev, termYears: Number(e.target.value) }))}
             />
             <span className="slider-value">{state.termYears} años</span>
@@ -443,6 +481,8 @@ export function Hipoteca() {
               max={5}
               step={0.1}
               value={state.interestRate}
+              onPointerDown={() => { slidingRef.current = true }}
+              onPointerUp={handleSliderCommit}
               onChange={e => setState(prev => ({ ...prev, interestRate: Number(e.target.value) }))}
             />
             <span className="slider-value">{fmtPct(state.interestRate)}%</span>
@@ -715,7 +755,19 @@ export function Hipoteca() {
               aria-expanded={scheduleExpanded}
             >
               <span>Simulación de cuotas</span>
-              <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>
+              <span className="schedule-panel__header-actions">
+                {hasContributions && (
+                  <span
+                    role="button"
+                    className={`schedule-panel__amort-toggle${includeAmortizations ? ' schedule-panel__amort-toggle--active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); setIncludeAmortizations(prev => !prev) }}
+                    title="Incluir amortizaciones en la simulación"
+                  >
+                    Incluir amortizaciones
+                  </span>
+                )}
+                <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>
+              </span>
             </button>
             {scheduleExpanded && (
               <div className="schedule-panel__body">
