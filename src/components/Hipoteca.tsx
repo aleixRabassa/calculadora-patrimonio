@@ -659,7 +659,7 @@ export function Hipoteca() {
             <div className="computed-value">
               {state.amortizationType === 'cuota' ? (
                 <>
-                  {fmt(payoffInfo.finalPayment ?? hipoteca.cuotaMensual)} €/mes
+                  {fmt(payoffInfo.finalPayment ?? hipoteca.cuotaMensual)} €/mes (última cuota)
                   <span className="detail hipoteca__savings-detail">
                     {fmt(Math.max(0, hipoteca.cuotaMensual - (payoffInfo.finalPayment ?? hipoteca.cuotaMensual)))} €/mes menos en cuota
                     {' · '}
@@ -669,7 +669,7 @@ export function Hipoteca() {
               ) : (
                 <>
                   {Math.floor(payoffInfo.enhancedMonths / 12)} años
-                  {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
+                  {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''} de hipoteca
                   <span className="detail hipoteca__savings-detail">
                     {payoffInfo.monthsSaved >= 12
                       ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
