@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto, generateAmortizationSchedule, generateAmortizationScheduleWithContributions } from './calculations'
+import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularInversion, calcularPatrimonioNeto, calcularSalarioNeto, generateAmortizationSchedule, generateAmortizationScheduleWithContributions, generateInvestmentSchedule } from './calculations'
 
 describe('calcularSalarioNeto - Andorra', () => {
   test('retorna ceros para bruto inválido', () => {
@@ -559,5 +559,57 @@ describe('generateAmortizationScheduleWithContributions - scheduled (extraordina
     const last = withExtra[withExtra.length - 1]
     expect(last.outstandingPrincipal).toBeCloseTo(0, 0)
     expect(last.accumulatedPrincipal).toBeCloseTo(160_000, 0)
+  })
+})
+
+describe('generateInvestmentSchedule', () => {
+  test('generates correct number of points (months + 1 including month 0)', () => {
+    const schedule = generateInvestmentSchedule(10_000, 200, 7, 120)
+    expect(schedule.length).toBe(121)
+  })
+
+  test('first point has initial capital as value and contributed', () => {
+    const schedule = generateInvestmentSchedule(10_000, 200, 7, 60)
+    expect(schedule[0].value).toBe(10_000)
+    expect(schedule[0].contributed).toBe(10_000)
+    expect(schedule[0].month).toBe(0)
+  })
+
+  test('contributed grows linearly with monthly contribution', () => {
+    const schedule = generateInvestmentSchedule(5_000, 300, 7, 24)
+    expect(schedule[24].contributed).toBe(5_000 + 300 * 24)
+  })
+
+  test('value is greater than contributed when return is positive', () => {
+    const schedule = generateInvestmentSchedule(10_000, 200, 7, 120)
+    const last = schedule[schedule.length - 1]
+    expect(last.value).toBeGreaterThan(last.contributed)
+  })
+
+  test('value equals contributed when return is zero', () => {
+    const schedule = generateInvestmentSchedule(10_000, 200, 0, 60)
+    const last = schedule[schedule.length - 1]
+    expect(last.value).toBeCloseTo(last.contributed, 5)
+  })
+
+  test('final value matches calcularInversion', () => {
+    const schedule = generateInvestmentSchedule(10_000, 200, 7, 240)
+    const result = calcularInversion(10_000, 200, 7, 20)
+    const last = schedule[schedule.length - 1]
+    expect(last.value).toBeCloseTo(result.valorFinal, 2)
+  })
+
+  test('returns empty array for invalid inputs', () => {
+    expect(generateInvestmentSchedule(-1, 200, 7, 60)).toEqual([])
+    expect(generateInvestmentSchedule(10_000, -1, 7, 60)).toEqual([])
+    expect(generateInvestmentSchedule(10_000, 200, 7, -1)).toEqual([])
+    expect(generateInvestmentSchedule(NaN, 200, 7, 60)).toEqual([])
+  })
+
+  test('with zero initial capital, only contributions grow', () => {
+    const schedule = generateInvestmentSchedule(0, 500, 5, 12)
+    expect(schedule[0].value).toBe(0)
+    expect(schedule[12].contributed).toBe(500 * 12)
+    expect(schedule[12].value).toBeGreaterThan(schedule[12].contributed)
   })
 })

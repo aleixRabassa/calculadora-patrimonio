@@ -365,6 +365,53 @@ export function generateAmortizationScheduleWithContributions(
   return schedule
 }
 
+// --- Investment Schedule ---
+
+export interface InvestmentPoint {
+  month: number
+  value: number
+  contributed: number
+}
+
+/**
+ * Generates a monthly investment growth schedule for a single investment.
+ *
+ * @param capitalInicial - Initial capital (€)
+ * @param aportacionMensual - Monthly contribution (€)
+ * @param annualReturnPct - Average annual return as percentage (e.g. 7 for 7%)
+ * @param months - Number of months to project
+ */
+export function generateInvestmentSchedule(
+  capitalInicial: number,
+  aportacionMensual: number,
+  annualReturnPct: number,
+  months: number,
+): InvestmentPoint[] {
+  if (
+    !isFinite(capitalInicial) || capitalInicial < 0 ||
+    !isFinite(aportacionMensual) || aportacionMensual < 0 ||
+    !isFinite(annualReturnPct) ||
+    !isFinite(months) || months < 0
+  ) {
+    return []
+  }
+
+  const r = annualReturnPct / 100 / 12
+  const schedule: InvestmentPoint[] = []
+  let value = capitalInicial
+  let contributed = capitalInicial
+
+  schedule.push({ month: 0, value: capitalInicial, contributed: capitalInicial })
+
+  for (let m = 1; m <= months; m++) {
+    value = value * (1 + r) + aportacionMensual
+    contributed += aportacionMensual
+    schedule.push({ month: m, value, contributed })
+  }
+
+  return schedule
+}
+
 /**
  * Calcula el patrimonio neto.
  *

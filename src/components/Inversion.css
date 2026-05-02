@@ -1,0 +1,248 @@
+.inversion {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  text-align: left;
+}
+
+.inversion__top {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 32px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inversion__list-full {
+  width: 100%;
+}
+
+.inversion h2 {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.inversion h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-h);
+  margin: 0 0 12px;
+}
+
+/* Summary cards */
+.inversion__summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.summary-card__label {
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.summary-card__value {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.summary-card__value--accent {
+  color: var(--accent);
+}
+
+.summary-card__value--pos {
+  color: #48bb78;
+}
+
+.summary-card__value--neg {
+  color: #e53e3e;
+}
+
+.summary-card__detail {
+  font-size: 11px;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.summary-card__detail--pos {
+  color: #48bb78;
+}
+
+.summary-card__detail--neg {
+  color: #e53e3e;
+}
+
+/* Investment table */
+.inversion-desc {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  &::placeholder {
+    color: var(--text);
+    opacity: 0.45;
+  }
+}
+
+.inversion-table {width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.inversion-table thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.inversion-table__col--num {
+  text-align: right !important;
+}
+
+.inversion-table__col--color {
+  width: 36px;
+}
+
+.inversion-table__col--desc {
+  min-width: 160px;
+}
+
+.inversion-table__col--action {
+  width: 40px;
+}
+
+.inversion-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.inversion-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.inversion-table td {
+  padding: 6px 10px;
+  vertical-align: middle;
+}
+
+.inversion-table td .input-group {
+  justify-content: flex-end;
+}
+
+.inversion-table td .input-group input {
+  max-width: 90px;
+  text-align: right;
+}
+
+.inversion-table__final-value {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.inversion-table tfoot td {
+  padding: 10px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.inversion-table__add-row {
+  text-align: left;
+}
+
+.inversion-table__footer-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.inversion-table__footer-value {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  display: block;
+  text-align: right;
+}
+
+.inversion-table__footer-value--accent {
+  color: var(--accent);
+}
+
+.inversion-color {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+  }
+
+  &::-moz-color-swatch {
+    border: none;
+    border-radius: 50%;
+  }
+}
+
+/* Chart area */
+.inversion__charts {
+  padding-top: 0;
+}
+
+.inversion__charts .recharts-wrapper,
+.inversion__charts .recharts-wrapper *,
+.inversion__charts .recharts-wrapper *:focus,
+.inversion__charts .recharts-wrapper *:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.inversion__charts .recharts-area-area,
+.inversion__charts .recharts-area-curve {
+  pointer-events: none;
+}
