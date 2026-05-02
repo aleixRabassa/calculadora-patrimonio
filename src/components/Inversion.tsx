@@ -11,9 +11,10 @@ const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits:
 const HORIZON_OPTIONS = [1, 2, 5, 10, 20, 30] as const
 
 const PALETTE_COLORS = [
-  '#7c3aed', '#6366f1', '#3b82f6', '#06b6d4',
-  '#10b981', '#84cc16', '#f59e0b', '#f97316',
-  '#ef4444', '#f43f5e', '#ec4899', '#14b8a6',
+  '#7c3aed', '#10b981', '#ef4444',
+  '#6366f1', '#84cc16', '#f43f5e',
+  '#3b82f6', '#f59e0b', '#ec4899',
+  '#06b6d4', '#f97316', '#14b8a6',
 ]
 
 interface InvestmentItem {
@@ -62,7 +63,9 @@ function formatFutureMonth(monthsFromNow: number): string {
 function InversionChartTooltip({ active, payload, label, inversiones }: ChartTooltipProps) {
   if (!active || !payload?.length || label == null) return null
 
-  const totalValue = payload.find(p => p.dataKey === 'total')?.value
+  const totalValue = payload
+    .filter(p => typeof p.dataKey === 'string' && (p.dataKey as string).startsWith('inv_'))
+    .reduce((sum, p) => sum + (typeof p.value === 'number' ? p.value : 0), 0)
   const totalContributed = payload.find(p => p.dataKey === 'totalContributed')?.value
 
   return (
@@ -79,17 +82,17 @@ function InversionChartTooltip({ active, payload, label, inversiones }: ChartToo
           </div>
         )
       })}
-      {typeof totalValue === 'number' && (
+      {totalValue > 0 && (
         <div className="chart-tooltip__row" style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
           <span className="chart-tooltip__dot" style={{ background: 'var(--text-h)' }} />
           <span className="chart-tooltip__label"><strong>Total</strong></span>
           <span className="chart-tooltip__value"><strong>{fmt(totalValue)} €</strong></span>
         </div>
       )}
-      {typeof totalContributed === 'number' && typeof totalValue === 'number' && (
+      {typeof totalContributed === 'number' && totalValue > 0 && (
         <div className="chart-tooltip__row">
-          <span className="chart-tooltip__dot" style={{ background: 'transparent' }} />
-          <span className="chart-tooltip__label">Aportado</span>
+          <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
+          <span className="chart-tooltip__label">Total aportado</span>
           <span className="chart-tooltip__value">{fmt(totalContributed)} € · +{fmtPct(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%</span>
         </div>
       )}
@@ -160,7 +163,8 @@ export function Inversion() {
   const totalReturns = totalFinalValue - totalContributed
 
   const addInversion = () => {
-    const colorIdx = inversiones.length % PALETTE_COLORS.length
+    const usedColors = new Set(inversiones.map(i => i.color))
+    const color = PALETTE_COLORS.find(c => !usedColors.has(c)) ?? PALETTE_COLORS[inversiones.length % PALETTE_COLORS.length]
     setState(prev => ({
       ...prev,
       inversiones: [...(prev.inversiones ?? []), {
@@ -169,7 +173,7 @@ export function Inversion() {
         capitalInicial: 0,
         aportacionMensual: 0,
         rentabilidadAnual: 7,
-        color: PALETTE_COLORS[colorIdx],
+        color,
       }],
     }))
   }
@@ -233,7 +237,7 @@ export function Inversion() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={360}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 0, bottom: 8, left: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 30, bottom: 8, left: 0 }}>
               <XAxis
                 dataKey="month"
                 tickFormatter={m => {
@@ -297,6 +301,7 @@ export function Inversion() {
                 stroke="var(--text)"
                 strokeWidth={1.5}
                 strokeDasharray="5 3"
+                strokeOpacity={0.45}
                 name="totalContributed"
               />
             </ComposedChart>
