@@ -228,7 +228,7 @@ export function Inversion() {
           id: crypto.randomUUID(),
           descripcion: 'Hipoteca (deuda)',
           capitalInicial: -financedAmount,
-          aportacionMensual: hipoteca.cuotaMensual,
+          aportacionMensual: hipoteca.capital / (hipotecaState.termYears * 12),
           rentabilidadAnual: hipotecaState.interestRate,
           color: colorHipoteca,
         },
@@ -363,7 +363,10 @@ export function Inversion() {
               <th className="inversion-table__col--color" />
               <th className="inversion-table__col--desc">Descripción</th>
               <th className="inversion-table__col--num">Capital inicial</th>
-              <th className="inversion-table__col--num">Aport. mensual</th>
+              <th className="inversion-table__col--num">
+                Aport. mensual
+                <span className="col-info" aria-label="En activos: aportación mensual libre. En deudas (hipoteca): amortización media de capital = capital financiado ÷ (años × 12). No incluye intereses.">?</span>
+              </th>
               <th className="inversion-table__col--num">Rentabilidad anual</th>
               <th className="inversion-table__col--num">Valor a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</th>
               <th className="inversion-table__col--action" />
