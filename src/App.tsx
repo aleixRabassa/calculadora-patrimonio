@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Tabs } from './components/Tabs'
 import { Ingresos } from './components/Ingresos'
 import { Hipoteca } from './components/Hipoteca'
@@ -9,20 +9,65 @@ import './App.css'
 
 const TAB_LABELS = ['Ingresos', 'Hipoteca', 'Inversión', 'Patrimonio']
 
+const STORAGE_KEYS = [
+  'app.activeTab',
+  'app.theme.dark',
+  'calc.ingresos',
+  'calc.ingresos.fechaObjetivo',
+  'calc.ingresos.ahorroObjetivo',
+  'calc.hipoteca',
+  'calc.inversion',
+]
+
 function App() {
   const [activeTab, setActiveTab] = useLocalStorage('app.activeTab', 0)
   const [isDark, setIsDark] = useLocalStorage('app.theme.dark', false)
+  const isImporting = useRef(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
   }, [isDark])
+
+  function handleExportJson() {
+    const data: Record<string, unknown> = {}
+    STORAGE_KEYS.forEach(key => {
+      const raw = localStorage.getItem(key)
+      if (raw !== null) {
+        try { data[key] = JSON.parse(raw) } catch { data[key] = raw }
+      }
+    })
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'calculadora-patrimonio.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function handleImportJson(data: Record<string, unknown>) {
+    if (isImporting.current) return
+    isImporting.current = true
+    Object.entries(data).forEach(([key, value]) => {
+      localStorage.setItem(key, JSON.stringify(value))
+    })
+    window.location.reload()
+  }
 
   return (
     <>
       <header className="app-header">
         <h1>Calculadora de Patrimonio</h1>
       </header>
-      <Tabs tabs={TAB_LABELS} active={activeTab} onChange={setActiveTab} isDark={isDark} onToggleTheme={() => setIsDark(v => !v)} />
+      <Tabs
+        tabs={TAB_LABELS}
+        active={activeTab}
+        onChange={setActiveTab}
+        isDark={isDark}
+        onToggleTheme={() => setIsDark(v => !v)}
+        onExportJson={handleExportJson}
+        onImportJson={handleImportJson}
+      />
       <main>
         {activeTab === 0 && <Ingresos />}
         {activeTab === 1 && <Hipoteca />}

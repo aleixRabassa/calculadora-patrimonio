@@ -7,6 +7,8 @@ interface TabsProps {
   onChange: (index: number) => void
   isDark: boolean
   onToggleTheme: () => void
+  onExportJson: () => void
+  onImportJson: (data: Record<string, unknown>) => void
 }
 
 function IconMoon() {
@@ -42,9 +44,26 @@ function IconGear() {
   )
 }
 
-export function Tabs({ tabs, active, onChange, isDark, onToggleTheme }: TabsProps) {
+export function Tabs({ tabs, active, onChange, isDark, onToggleTheme, onExportJson, onImportJson }: TabsProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string) as Record<string, unknown>
+        onImportJson(data)
+      } catch {
+        alert('El archivo no es un JSON válido.')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   useEffect(() => {
     if (!menuOpen) return
@@ -91,6 +110,14 @@ export function Tabs({ tabs, active, onChange, isDark, onToggleTheme }: TabsProp
             <IconGear />
           </button>
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+
           {menuOpen && (
             <div className="settings-menu" role="menu">
               <button type="button" className="settings-item" role="menuitem" onClick={() => setMenuOpen(false)}>
@@ -98,6 +125,22 @@ export function Tabs({ tabs, active, onChange, isDark, onToggleTheme }: TabsProp
               </button>
               <button type="button" className="settings-item" role="menuitem" onClick={() => setMenuOpen(false)}>
                 Exportar PDF
+              </button>
+              <button
+                type="button"
+                className="settings-item"
+                role="menuitem"
+                onClick={() => { onExportJson(); setMenuOpen(false) }}
+              >
+                Exportar JSON
+              </button>
+              <button
+                type="button"
+                className="settings-item"
+                role="menuitem"
+                onClick={() => { fileInputRef.current?.click(); setMenuOpen(false) }}
+              >
+                Importar JSON
               </button>
             </div>
           )}
