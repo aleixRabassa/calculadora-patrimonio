@@ -93,6 +93,7 @@ interface HipotecaState {
   itpPct: number
   termYears: number
   interestRate: number
+  additionalEntry: number
 }
 
 interface InvestmentItem {
@@ -124,6 +125,7 @@ const DEFAULT_HIPOTECA: HipotecaState = {
   itpPct: 10,
   termYears: 30,
   interestRate: 3,
+  additionalEntry: 0,
 }
 
 const DEFAULT_INVERSION: InversionState = {
@@ -178,6 +180,10 @@ export function Patrimonio() {
   const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
   const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
   const downPayment = totalPrice - financedAmount
+  const itpAmount = totalPrice * ((hipotecaState.itpPct ?? 10) / 100)
+  const purchaseCosts = totalPrice * 0.01
+  const additionalEntry = hipotecaState.additionalEntry ?? 0
+  const totalCapitalAportado = downPayment + itpAmount + purchaseCosts + additionalEntry
 
   const hipoteca = useMemo(
     () => calcularHipoteca(totalPrice, downPayment, hipotecaState.interestRate, hipotecaState.termYears),
@@ -243,11 +249,11 @@ export function Patrimonio() {
   const mortgageDistribution = useMemo(() => {
     if (hipoteca.capital <= 0) return []
     return [
-      { name: 'Capital aportado (entrada)', value: Math.round(Math.abs(downPayment)), color: MORTGAGE_COLORS[0] },
+      { name: 'Capital aportado (entrada)', value: Math.round(Math.abs(totalCapitalAportado)), color: MORTGAGE_COLORS[0] },
       { name: 'Capital pendiente', value: Math.round(Math.abs(hipoteca.capital)), color: MORTGAGE_COLORS[1] },
       { name: 'Intereses totales', value: Math.round(Math.abs(hipoteca.interesesTotales)), color: MORTGAGE_COLORS[2] },
     ]
-  }, [hipoteca.capital, hipoteca.interesesTotales, downPayment])
+  }, [hipoteca.capital, hipoteca.interesesTotales, totalCapitalAportado])
 
   // --- 3. Investment portfolio pie (absolute values) ---
   const investmentDistribution = useMemo(() => {
@@ -255,8 +261,7 @@ export function Patrimonio() {
     return inversiones
       .map(inv => ({
         name: inv.descripcion || 'Sin nombre',
-        // Use absolute capital; fall back to monthly contribution for zero-capital positions
-        value: Math.round(Math.abs(inv.capitalInicial) || Math.abs(inv.aportacionMensual)),
+        value: Math.round(Math.abs(inv.capitalInicial)),
         color: inv.color,
       }))
       .filter(s => s.value > 0)
