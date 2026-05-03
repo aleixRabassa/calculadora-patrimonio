@@ -5,6 +5,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import {
   calcularHipoteca,
   calcularSalarioNeto,
+  calcularAhorroInicialEfectivo,
   generateAmortizationSchedule,
   generateAmortizationScheduleWithContributions,
 } from '../utils/calculations'
@@ -50,10 +51,12 @@ const DEFAULT_STATE: HipotecaState = {
 interface MinimalIngresosState {
   brutoAnual: number
   gastos?: Array<{ valor: number }>
+  gastosExtraordinarios?: Array<{ importe: number }>
+  ahorroInicial?: number
   country?: Country
 }
 
-const INGRESOS_FALLBACK: MinimalIngresosState = { brutoAnual: 43_000, gastos: [], country: 'spain' }
+const INGRESOS_FALLBACK: MinimalIngresosState = { brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain' }
 
 interface ChartPoint {
   month: number
@@ -160,6 +163,9 @@ export function Hipoteca() {
   }, [state.annualContribution, setState, annualizedSavings])
 
   const isSyncedWithSavings = (state.annualContribution ?? annualizedSavings) === annualizedSavings
+
+  const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+  const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
 
   const totalPrice = state.propertyPrice + state.parkingPrice
   const financedAmount = totalPrice * (state.financingPct / 100)
@@ -372,6 +378,9 @@ export function Hipoteca() {
     }))
   }
 
+  const additionalEntry = Math.round(totalPrice * (1 - state.financingPct / 100))
+  const isSyncedWithInitialSavings = additionalEntry === Math.round(Math.max(0, ahorroInicialEfectivo))
+
   return (
     <section className="hipoteca">
       <div className="hipoteca__form">
@@ -450,6 +459,42 @@ export function Hipoteca() {
             <span className="detail">
               Aportación propia {fmt(downPayment)} € + ITP {fmt(itpAmount)} € + Gastos {fmt(purchaseCosts)} €
             </span>
+          </div>
+        </div>
+
+        <div className="field">
+          <div className="field__label-row">
+            <label htmlFor="additionalEntry">Entrada adicional</label>
+            <button
+              type="button"
+              className={`sync-link${isSyncedWithInitialSavings ? ' sync-link--synced' : ''}`}
+              onClick={() => {
+                if (totalPrice > 0) {
+                  const effective = Math.max(0, ahorroInicialEfectivo)
+                  const rawPct = (1 - effective / totalPrice) * 100
+                  setState(prev => ({ ...prev, financingPct: Math.max(50, Math.min(100, rawPct)) }))
+                }
+              }}
+            >
+              Ahorro actual efectivo: {fmt(Math.max(0, ahorroInicialEfectivo))} €
+            </button>
+          </div>
+          <div className="input-group">
+            <input
+              id="additionalEntry"
+              type="number"
+              min={0}
+              step={1000}
+              value={additionalEntry}
+              onFocus={e => e.target.select()}
+              onChange={e => {
+                if (totalPrice <= 0) return
+                const euros = Number(e.target.value)
+                const rawPct = (1 - euros / totalPrice) * 100
+                setState(prev => ({ ...prev, financingPct: Math.max(50, Math.min(100, rawPct)) }))
+              }}
+            />
+            <span className="suffix">€</span>
           </div>
         </div>
 
