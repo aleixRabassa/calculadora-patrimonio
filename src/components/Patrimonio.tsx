@@ -145,10 +145,11 @@ export function Patrimonio() {
     // Individual expenses from gastos list
     for (let i = 0; i < gastosList.length; i++) {
       const g = gastosList[i]
-      if (g.valor > 0) {
+      const absValue = Math.abs(g.valor)
+      if (absValue > 0) {
         slices.push({
           name: g.descripcion || `Gasto ${i + 1}`,
-          value: g.valor,
+          value: Math.round(absValue),
           color: EXPENSE_COLORS[i % EXPENSE_COLORS.length],
         })
       }
@@ -156,8 +157,8 @@ export function Patrimonio() {
 
     // Investment contributions (only non-expense ones, excluding mortgage payments already counted)
     const investmentContribsExcludingMortgage = inversiones
-      .filter(inv => inv.aportacionMensual > 0 && !inv.descripcion.toLowerCase().includes('hipoteca') && !inv.descripcion.toLowerCase().includes('deuda'))
-      .reduce((s, inv) => s + inv.aportacionMensual, 0)
+      .filter(inv => inv.aportacionMensual !== 0 && !inv.descripcion.toLowerCase().includes('hipoteca') && !inv.descripcion.toLowerCase().includes('deuda'))
+      .reduce((s, inv) => s + Math.abs(inv.aportacionMensual), 0)
 
     if (investmentContribsExcludingMortgage > 0) {
       slices.push({
@@ -185,9 +186,9 @@ export function Patrimonio() {
   const mortgageDistribution = useMemo(() => {
     if (hipoteca.capital <= 0) return []
     return [
-      { name: 'Capital aportado (entrada)', value: Math.round(downPayment), color: MORTGAGE_COLORS[0] },
-      { name: 'Capital pendiente', value: Math.round(hipoteca.capital), color: MORTGAGE_COLORS[1] },
-      { name: 'Intereses totales', value: Math.round(hipoteca.interesesTotales), color: MORTGAGE_COLORS[2] },
+      { name: 'Capital aportado (entrada)', value: Math.round(Math.abs(downPayment)), color: MORTGAGE_COLORS[0] },
+      { name: 'Capital pendiente', value: Math.round(Math.abs(hipoteca.capital)), color: MORTGAGE_COLORS[1] },
+      { name: 'Intereses totales', value: Math.round(Math.abs(hipoteca.interesesTotales)), color: MORTGAGE_COLORS[2] },
     ]
   }, [hipoteca.capital, hipoteca.interesesTotales, downPayment])
 
@@ -195,10 +196,10 @@ export function Patrimonio() {
   const investmentDistribution = useMemo(() => {
     if (inversiones.length === 0) return []
     return inversiones
-      .filter(inv => Math.abs(inv.capitalInicial) > 0 || inv.aportacionMensual > 0)
       .map(inv => ({
         name: inv.descripcion || 'Sin nombre',
-        value: Math.abs(inv.capitalInicial),
+        // Use absolute capital; fall back to monthly contribution for zero-capital positions
+        value: Math.round(Math.abs(inv.capitalInicial) || Math.abs(inv.aportacionMensual)),
         color: inv.color,
       }))
       .filter(s => s.value > 0)

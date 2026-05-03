@@ -454,7 +454,16 @@ export function Hipoteca() {
         </div>
 
         <div className="field field--computed">
-          <label>Entrada necesaria</label>
+          <div className="field__label-row">
+            <label>Entrada necesaria</label>
+            <button
+              type="button"
+              className={`sync-link${state.financingPct === 100 ? ' sync-link--synced' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, financingPct: 100 }))}
+            >
+              Sin entrada propia
+            </button>
+          </div>
           <div className="computed-value">
             {fmt(totalEntry)} €
             <span className="detail">
