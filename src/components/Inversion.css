@@ -160,6 +160,11 @@
   color: #e53e3e;
 }
 
+.summary-card__detail--muted {
+  color: var(--text);
+  opacity: 0.55;
+}
+
 /* Investment table */
 .inversion-desc {
   width: 100%;

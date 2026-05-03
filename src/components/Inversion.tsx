@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type React from 'react'
 import { Area, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import type { Country } from '../utils/calculations'
@@ -305,6 +306,7 @@ export function Inversion() {
               max={10}
               step={0.1}
               value={inflationPct}
+              style={{ '--pct': `${inflationPct / 10 * 100}%` } as React.CSSProperties}
               onChange={e => setState(prev => ({ ...prev, inflationPct: Number(e.target.value) }))}
             />
             <div className="inflation-control__ticks">
@@ -325,7 +327,10 @@ export function Inversion() {
             </div>
             <div className="summary-card">
               <div className="summary-card__label">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</div>
-              <div className="summary-card__value summary-card__value--accent">{fmt(totalFinalValue)} €</div>
+              <div className="summary-card__value summary-card__value--accent">
+                {fmt(totalFinalValue)} €
+                <div className="summary-card__detail summary-card__detail--muted">*inflación aplicada</div>
+              </div>
             </div>
             <div className="summary-card">
               <div className="summary-card__label">Rentabilidad acumulada</div>
