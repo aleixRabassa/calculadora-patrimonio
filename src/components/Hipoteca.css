@@ -203,6 +203,12 @@
   font-weight: 600;
 }
 
+.segmented-control--small .segmented-control__option {
+  padding: 4px 16px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 /* Amortization schedule panel */
 .schedule-panel {
   margin-top: 12px;

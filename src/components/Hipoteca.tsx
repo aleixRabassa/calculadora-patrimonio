@@ -802,14 +802,22 @@ export function Hipoteca() {
               <span>Simulación de cuotas</span>
               <span className="schedule-panel__header-actions">
                 {hasContributions && (
-                  <span
-                    role="button"
-                    className={`schedule-panel__amort-toggle${includeAmortizations ? ' schedule-panel__amort-toggle--active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setIncludeAmortizations(prev => !prev) }}
-                    title="Incluir amortizaciones en la simulación"
-                  >
-                    Incluir amortizaciones
-                  </span>
+                  <div className="segmented-control segmented-control--small" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className={`segmented-control__option${includeAmortizations ? ' segmented-control__option--active' : ''}`}
+                      onClick={() => setIncludeAmortizations(true)}
+                    >
+                      Con amortizaciones
+                    </button>
+                    <button
+                      type="button"
+                      className={`segmented-control__option${!includeAmortizations ? ' segmented-control__option--active' : ''}`}
+                      onClick={() => setIncludeAmortizations(false)}
+                    >
+                      Sin amortizaciones
+                    </button>
+                  </div>
                 )}
                 <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>
               </span>
