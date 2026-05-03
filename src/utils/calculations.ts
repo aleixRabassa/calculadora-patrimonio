@@ -386,17 +386,21 @@ export function generateInvestmentSchedule(
   aportacionMensual: number,
   annualReturnPct: number,
   months: number,
+  inflationPct = 0,
 ): InvestmentPoint[] {
   if (
     !isFinite(capitalInicial) ||
     !isFinite(aportacionMensual) ||
     !isFinite(annualReturnPct) ||
-    !isFinite(months) || months < 0
+    !isFinite(months) || months < 0 ||
+    !isFinite(inflationPct)
   ) {
     return []
   }
 
-  const r = annualReturnPct / 100 / 12
+  // Real return via Fisher equation: (1 + nominal) / (1 + inflation) - 1
+  const realAnnualReturn = (1 + annualReturnPct / 100) / (1 + inflationPct / 100) - 1
+  const r = realAnnualReturn / 12
   const schedule: InvestmentPoint[] = []
   let value = capitalInicial
   let contributed = capitalInicial

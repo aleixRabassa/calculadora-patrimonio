@@ -624,4 +624,20 @@ describe('generateInvestmentSchedule', () => {
     expect(schedule[12].contributed).toBe(500 * 12)
     expect(schedule[12].value).toBeGreaterThan(schedule[12].contributed)
   })
+
+  test('inflation reduces final value compared to no inflation', () => {
+    const nominal = generateInvestmentSchedule(10_000, 200, 7, 120, 0)
+    const real = generateInvestmentSchedule(10_000, 200, 7, 120, 2.5)
+    expect(real[120].value).toBeLessThan(nominal[120].value)
+  })
+
+  test('inflation equal to return yields near-zero real growth', () => {
+    const schedule = generateInvestmentSchedule(10_000, 0, 5, 12, 5)
+    // Real return ≈ 0, value should stay close to initial capital
+    expect(schedule[12].value).toBeCloseTo(10_000, 0)
+  })
+
+  test('invalid inflationPct returns empty array', () => {
+    expect(generateInvestmentSchedule(10_000, 200, 7, 60, NaN)).toEqual([])
+  })
 })

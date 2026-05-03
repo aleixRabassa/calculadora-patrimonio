@@ -29,6 +29,7 @@ interface InvestmentItem {
 
 interface InversionState {
   inversiones: InvestmentItem[]
+  inflationPct: number
 }
 
 const DEFAULT_STATE: InversionState = {
@@ -36,6 +37,7 @@ const DEFAULT_STATE: InversionState = {
     { id: 'inv-1', descripcion: 'ETF Global (MSCI World)', capitalInicial: 10_000, aportacionMensual: 300, rentabilidadAnual: 7, color: '#7c3aed' },
     { id: 'inv-2', descripcion: 'Renta fija', capitalInicial: 5_000, aportacionMensual: 100, rentabilidadAnual: 3, color: '#10b981' },
   ],
+  inflationPct: 2.5,
 }
 
 interface ChartPoint {
@@ -138,13 +140,14 @@ export function Inversion() {
   }, [openColorId])
 
   const inversiones = useMemo(() => state.inversiones ?? [], [state.inversiones])
+  const inflationPct = state.inflationPct ?? 2.5
   const months = horizonYears * 12
 
   const chartData = useMemo(() => {
     if (inversiones.length === 0) return []
 
     const schedules = inversiones.map(inv =>
-      generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, months)
+      generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, months, inflationPct)
     )
 
     const data: ChartPoint[] = []
@@ -166,7 +169,7 @@ export function Inversion() {
       data.push(point)
     }
     return data
-  }, [inversiones, months])
+  }, [inversiones, months, inflationPct])
 
   const totalCapitalInicial = inversiones.reduce((s, inv) => s + inv.capitalInicial, 0)
   const totalAportacionMensual = inversiones.reduce((s, inv) => s + inv.aportacionMensual, 0)
@@ -242,6 +245,27 @@ export function Inversion() {
         <div className="inversion__form">
           <h2>Cartera de Inversión</h2>
 
+          <div className="inflation-control">
+            <div className="inflation-control__header">
+              <span className="inflation-control__label">Inflación anual</span>
+              <span className="inflation-control__value">{fmtPct(inflationPct)}%</span>
+            </div>
+            <input
+              type="range"
+              className="inflation-slider"
+              min={0}
+              max={10}
+              step={0.1}
+              value={inflationPct}
+              onChange={e => setState(prev => ({ ...prev, inflationPct: Number(e.target.value) }))}
+            />
+            <div className="inflation-control__ticks">
+              <span>0%</span>
+              <span>5%</span>
+              <span>10%</span>
+            </div>
+          </div>
+
           <div className="inversion__summary">
             <div className="summary-card">
               <div className="summary-card__label">Capital invertido</div>
@@ -252,7 +276,7 @@ export function Inversion() {
               <div className="summary-card__value">{fmt(totalAportacionMensual)} €/mes</div>
             </div>
             <div className="summary-card">
-              <div className="summary-card__label">Valor a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</div>
+              <div className="summary-card__label">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</div>
               <div className="summary-card__value summary-card__value--accent">{fmt(totalFinalValue)} €</div>
             </div>
             <div className="summary-card">
@@ -376,13 +400,13 @@ export function Inversion() {
                 </span>
               </th>
               <th className="inversion-table__col--num">Rentabilidad anual</th>
-              <th className="inversion-table__col--num">Valor a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</th>
+              <th className="inversion-table__col--num">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</th>
               <th className="inversion-table__col--action" />
             </tr>
           </thead>
           <tbody>
             {inversiones.map(inv => {
-              const schedule = generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, months)
+              const schedule = generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, months, inflationPct)
               const finalValue = schedule[schedule.length - 1]?.value ?? 0
               return (
                 <tr key={inv.id}>
