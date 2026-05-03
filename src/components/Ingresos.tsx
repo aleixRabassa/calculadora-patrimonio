@@ -20,6 +20,12 @@ interface GastoMensual {
   valor: number
 }
 
+interface OtroIngreso {
+  id: string
+  descripcion: string
+  valor: number
+}
+
 interface GastoExtraordinario {
   id: string
   descripcion: string
@@ -33,6 +39,7 @@ interface LegacyIngresosState {
 
 interface IngresosState {
   brutoAnual: number
+  otrosIngresos: OtroIngreso[]
   gastos: GastoMensual[]
   gastosExtraordinarios: GastoExtraordinario[]
   ahorroInicial: number
@@ -50,6 +57,7 @@ const DEFAULT_CUOTA_HIPOTECARIA = Math.round(calcularHipoteca(200_000, 40_000, 3
 
 const DEFAULT_STATE: IngresosState = {
   brutoAnual: 40_000,
+  otrosIngresos: [],
   gastos: [
     { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA }
   ],
@@ -128,6 +136,7 @@ export function Ingresos() {
   const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', 100_000)
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)
   const [gastosExtraordinariosExpanded, setGastosExtraordinariosExpanded] = useState<boolean>(false)
+  const [otrosIngresosExpanded, setOtrosIngresosExpanded] = useState<boolean>(false)
 
   // One-time migration: if old state has gastosFijos but no gastos, convert it
   useEffect(() => {
@@ -140,11 +149,15 @@ export function Ingresos() {
   const gastosList = state.gastos ?? []
   const totalGastos = gastosList.reduce((sum, g) => sum + g.valor, 0)
 
+  const otrosIngresosList = state.otrosIngresos ?? []
+  const totalOtrosIngresosMensual = otrosIngresosList.reduce((sum, i) => sum + i.valor, 0)
+  const brutoAnualTotal = state.brutoAnual + totalOtrosIngresosMensual * 12
+
   const gastosExtraordinariosLista = state.gastosExtraordinarios ?? []
   const totalGastosExtraordinarios = gastosExtraordinariosLista.reduce((sum, g) => sum + g.importe, 0)
   const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(state.ahorroInicial, totalGastosExtraordinarios)
 
-  const netoInfo = calcularSalarioNeto(state.brutoAnual, state.country ?? 'spain')
+  const netoInfo = calcularSalarioNeto(brutoAnualTotal, state.country ?? 'spain')
   const ahorroMensual = netoInfo.netoMensual - totalGastos
 
   // Full 20-year projection used for target calculations
@@ -155,12 +168,13 @@ export function Ingresos() {
     let ahorroAcum = calcularAhorroInicialEfectivo(state.ahorroInicial, gastosExtraordTotal)
     let brutoActual = state.brutoAnual
     const gastosMensuales = (state.gastos ?? []).reduce((sum, g) => sum + g.valor, 0)
+    const otrosIngresosMensual = (state.otrosIngresos ?? []).reduce((sum, i) => sum + i.valor, 0)
 
     for (let m = 0; m <= MAX_HORIZONTE_MESES; m++) {
       const subida = subidasOrdenadas.find(s => s.mes === m)
       if (subida) brutoActual = subida.nuevoBrutoAnual
 
-      const neto = calcularSalarioNeto(brutoActual, state.country ?? 'spain')
+      const neto = calcularSalarioNeto(brutoActual + otrosIngresosMensual * 12, state.country ?? 'spain')
       const ahorro = neto.netoMensual - gastosMensuales
       if (m > 0) ahorroAcum += ahorro
 
@@ -174,7 +188,7 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.gastos, state.gastosExtraordinarios, state.ahorroInicial, state.subidas, state.country])
+  }, [state.brutoAnual, state.otrosIngresos, state.gastos, state.gastosExtraordinarios, state.ahorroInicial, state.subidas, state.country])
 
   const chartData = useMemo(
     () => fullProjection.slice(0, horizonYears * 12 + 1),
@@ -230,6 +244,24 @@ export function Ingresos() {
     setState(prev => ({
       ...prev,
       gastos: (prev.gastos ?? []).map(g => g.id === id ? { ...g, [field]: value } : g),
+    }))
+  }
+
+  const addOtroIngreso = () => {
+    setState(prev => ({
+      ...prev,
+      otrosIngresos: [...(prev.otrosIngresos ?? []), { id: crypto.randomUUID(), descripcion: '', valor: 0 }],
+    }))
+  }
+
+  const removeOtroIngreso = (id: string) => {
+    setState(prev => ({ ...prev, otrosIngresos: (prev.otrosIngresos ?? []).filter(i => i.id !== id) }))
+  }
+
+  const updateOtroIngreso = (id: string, field: 'descripcion' | 'valor', value: string | number) => {
+    setState(prev => ({
+      ...prev,
+      otrosIngresos: (prev.otrosIngresos ?? []).map(i => i.id === id ? { ...i, [field]: value } : i),
     }))
   }
 
@@ -316,9 +348,57 @@ export function Ingresos() {
           </div>
         </div>
 
+        <div className="gastos">
+          <button
+            type="button"
+            className="gastos__header"
+            onClick={() => setOtrosIngresosExpanded(prev => !prev)}
+            aria-expanded={otrosIngresosExpanded}
+          >
+            <div className="gastos__title">
+              <h3>Otros ingresos brutos</h3>
+              {totalOtrosIngresosMensual > 0 && (
+                <span className="gastos__total">{fmt(totalOtrosIngresosMensual)} €/mes</span>
+              )}
+            </div>
+            <span className={`gastos__toggle${otrosIngresosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
+          </button>
+          {otrosIngresosExpanded && (
+            <div className="gastos__body">
+              {otrosIngresosList.length === 0 && (
+                <p className="gastos__empty">Sin otros ingresos añadidos</p>
+              )}
+              {otrosIngresosList.map(ingreso => (
+                <div key={ingreso.id} className="gasto-row">
+                  <input
+                    type="text"
+                    className="gasto-desc"
+                    placeholder="Descripción"
+                    value={ingreso.descripcion}
+                    onChange={e => updateOtroIngreso(ingreso.id, 'descripcion', e.target.value)}
+                  />
+                  <div className="input-group gasto-value">
+                    <input
+                      type="number"
+                      min={0}
+                      step={50}
+                      value={ingreso.valor}
+                      onFocus={e => e.target.select()}
+                      onChange={e => updateOtroIngreso(ingreso.id, 'valor', Number(e.target.value))}
+                    />
+                    <span className="suffix">€/mes</span>
+                  </div>
+                  <button type="button" className="btn-remove" onClick={() => removeOtroIngreso(ingreso.id)}>✕</button>
+                </div>
+              ))}
+              <button type="button" className="btn-add gastos__add" onClick={addOtroIngreso}>+ Añadir ingreso</button>
+            </div>
+          )}
+        </div>
+
         <div className="field field--computed">
           <div className="field__label-row">
-            <label>Salario neto mensual</label>
+            <label>{totalOtrosIngresosMensual > 0 ? 'Ingresos netos mensuales' : 'Salario neto mensual'}</label>
             <div className="country-selector">
               <button
                 type="button"
@@ -338,8 +418,11 @@ export function Ingresos() {
           </div>
           <div className="computed-value">
             {fmt(netoInfo.netoMensual)} €/mes
+            {totalOtrosIngresosMensual > 0 && (
+              <span className="detail">Bruto total: {fmt(brutoAnualTotal)} €/año</span>
+            )}
           </div>
-          <label className="computed-sublabel">Salario neto anual</label>
+          <label className="computed-sublabel">{totalOtrosIngresosMensual > 0 ? 'Ingresos netos anuales' : 'Salario neto anual'}</label>
           <div className="computed-value">
             {fmt(netoInfo.netoAnual)} €/año
             <span className="detail">IRPF efectivo: {fmtPct(netoInfo.tipoEfectivoIRPF)}% · Total retenido: {fmt(netoInfo.irpf + netoInfo.seguridadSocial)} €</span>

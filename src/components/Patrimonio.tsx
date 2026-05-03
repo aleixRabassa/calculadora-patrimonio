@@ -78,8 +78,15 @@ interface GastoExtraordinario {
   importe: number
 }
 
+interface OtroIngreso {
+  id: string
+  descripcion: string
+  valor: number
+}
+
 interface IngresosState {
   brutoAnual: number
+  otrosIngresos?: OtroIngreso[]
   gastos: GastoMensual[]
   gastosExtraordinarios: GastoExtraordinario[]
   ahorroInicial: number
@@ -138,7 +145,7 @@ const EXPENSE_COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#84cc16',
   '#06b6d4', '#6366f1', '#ec4899', '#14b8a6',
 ]
-const MORTGAGE_COLORS = ['#48bb78', '#e53e3e', '#f6ad55']
+const INCOME_COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#f97316']
 const SAVINGS_COLOR = '#10b981'
 const INVESTMENT_SLICE_COLOR = '#7c3aed'
 
@@ -180,11 +187,6 @@ export function Patrimonio() {
   const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
   const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
   const downPayment = totalPrice - financedAmount
-  const itpAmount = totalPrice * ((hipotecaState.itpPct ?? 10) / 100)
-  const purchaseCosts = totalPrice * 0.01
-  const additionalEntry = hipotecaState.additionalEntry ?? 0
-  const totalCapitalAportado = downPayment + itpAmount + purchaseCosts + additionalEntry
-
   const hipoteca = useMemo(
     () => calcularHipoteca(totalPrice, downPayment, hipotecaState.interestRate, hipotecaState.termYears),
     [totalPrice, downPayment, hipotecaState.interestRate, hipotecaState.termYears],
@@ -245,15 +247,31 @@ export function Patrimonio() {
     return slices
   }, [gastosList, inversiones, neto.netoMensual])
 
-  // --- 2. Mortgage status pie ---
-  const mortgageDistribution = useMemo(() => {
-    if (hipoteca.capital <= 0) return []
-    return [
-      { name: 'Capital aportado (entrada)', value: Math.round(Math.abs(totalCapitalAportado)), color: MORTGAGE_COLORS[0] },
-      { name: 'Capital pendiente', value: Math.round(Math.abs(hipoteca.capital)), color: MORTGAGE_COLORS[1] },
-      { name: 'Intereses totales', value: Math.round(Math.abs(hipoteca.interesesTotales)), color: MORTGAGE_COLORS[2] },
-    ]
-  }, [hipoteca.capital, hipoteca.interesesTotales, totalCapitalAportado])
+  // --- 2. Income sources distribution pie ---
+  const incomeSourcesDistribution = useMemo(() => {
+    const otrosIngresos = ingresosState.otrosIngresos ?? []
+    const slices: Array<{ name: string; value: number; color: string }> = []
+
+    // Base salary (gross monthly)
+    const salarioMensual = Math.round(ingresosState.brutoAnual / 12)
+    if (salarioMensual > 0) {
+      slices.push({ name: 'Salario bruto mensual', value: salarioMensual, color: INCOME_COLORS[0] })
+    }
+
+    // Each additional income source
+    for (let i = 0; i < otrosIngresos.length; i++) {
+      const oi = otrosIngresos[i]
+      if (oi.valor > 0) {
+        slices.push({
+          name: oi.descripcion || `Ingreso ${i + 1}`,
+          value: Math.round(oi.valor),
+          color: INCOME_COLORS[(i + 1) % INCOME_COLORS.length],
+        })
+      }
+    }
+
+    return slices
+  }, [ingresosState.brutoAnual, ingresosState.otrosIngresos])
 
   // --- 3. Investment portfolio pie (absolute values) ---
   const investmentDistribution = useMemo(() => {
@@ -355,9 +373,53 @@ export function Patrimonio() {
 
       {/* Pie charts */}
       <div className="patrimonio__charts">
-        {/* Income distribution */}
+        {/* Income sources distribution */}
         <div className="chart-panel">
           <h3 className="chart-panel__title">Distribución de ingresos</h3>
+          {incomeSourcesDistribution.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={incomeSourcesDistribution}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="45%"
+                    outerRadius="80%"
+                    paddingAngle={2}
+                    stroke="none"
+                  >
+                    {incomeSourcesDistribution.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="chart-panel__legend">
+                {incomeSourcesDistribution.map((entry, i) => {
+                  const total = incomeSourcesDistribution.reduce((s, e) => s + e.value, 0)
+                  return (
+                    <div key={i} className="legend-item">
+                      <span className="legend-dot" style={{ background: entry.color }} />
+                      <span className="legend-label">{entry.name}</span>
+                      <span className="legend-value">{fmt(entry.value)} €</span>
+                      <span className="legend-pct">{fmtPct((entry.value / total) * 100)}%</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="patrimonio__empty">Introduce tu salario en la pestaña Ingresos</p>
+          )}
+        </div>
+
+        {/* Income distribution */}
+        <div className="chart-panel">
+          <h3 className="chart-panel__title">Distribución de gastos</h3>
           {incomeDistribution.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={200}>
@@ -396,50 +458,6 @@ export function Patrimonio() {
             </>
           ) : (
             <p className="patrimonio__empty">Introduce tus ingresos y gastos en la pestaña Ingresos</p>
-          )}
-        </div>
-
-        {/* Mortgage status */}
-        <div className="chart-panel">
-          <h3 className="chart-panel__title">Estado de las hipotecas</h3>
-          {mortgageDistribution.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={mortgageDistribution}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="45%"
-                    outerRadius="80%"
-                    paddingAngle={2}
-                    stroke="none"
-                  >
-                    {mortgageDistribution.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="chart-panel__legend">
-                {mortgageDistribution.map((entry, i) => {
-                  const total = mortgageDistribution.reduce((s, e) => s + e.value, 0)
-                  return (
-                    <div key={i} className="legend-item">
-                      <span className="legend-dot" style={{ background: entry.color }} />
-                      <span className="legend-label">{entry.name}</span>
-                      <span className="legend-value">{fmt(entry.value)} €</span>
-                      <span className="legend-pct">{fmtPct((entry.value / total) * 100)}%</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <p className="patrimonio__empty">Configura tu hipoteca en la pestaña Hipoteca</p>
           )}
         </div>
 
