@@ -50,7 +50,8 @@
 }
 
 .inflation-control__label {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text);
 }
 
@@ -122,7 +123,8 @@
 }
 
 .summary-card__label {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text);
   margin-bottom: 4px;
 }
@@ -147,7 +149,9 @@
 }
 
 .summary-card__detail {
-  font-size: 11px;
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
   color: var(--text);
   margin-top: 2px;
 }

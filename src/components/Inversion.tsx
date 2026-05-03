@@ -329,7 +329,7 @@ export function Inversion() {
               <div className="summary-card__label">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</div>
               <div className="summary-card__value summary-card__value--accent">
                 {fmt(totalFinalValue)} €
-                <div className="summary-card__detail summary-card__detail--muted">*inflación aplicada</div>
+                <div className="summary-card__detail">*inflación aplicada</div>
               </div>
             </div>
             <div className="summary-card">
