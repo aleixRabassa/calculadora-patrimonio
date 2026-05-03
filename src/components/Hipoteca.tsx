@@ -53,7 +53,7 @@ const DEFAULT_STATE: HipotecaState = {
 // Minimal Ingresos state shape needed to compute the default monthly savings
 interface MinimalIngresosState {
   brutoAnual: number
-  gastos?: Array<{ valor: number }>
+  gastos?: Array<{ valor: number; tipo?: 'mes' | 'año' | 'vez' }>
   gastosExtraordinarios?: Array<{ importe: number }>
   ahorroInicial?: number
   country?: Country
@@ -167,7 +167,8 @@ export function Hipoteca() {
 
   const isSyncedWithSavings = (state.annualContribution ?? annualizedSavings) === annualizedSavings
 
-  const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+  const totalGastosVez = (ingresosState.gastos ?? []).filter(g => g.tipo === 'vez').reduce((s, g) => s + g.valor, 0)
+  const totalGastosExtraordinarios = totalGastosVez + (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
   const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
 
   const totalPrice = state.propertyPrice + state.parkingPrice

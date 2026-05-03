@@ -18,6 +18,7 @@ interface GastoMensual {
   id: string
   descripcion: string
   valor: number
+  tipo?: 'mes' | 'año' | 'vez'
 }
 
 interface OtroIngreso {
@@ -54,7 +55,7 @@ interface IngresosState {
   brutoAnual: number
   otrosIngresos: OtroIngreso[]
   gastos: GastoMensual[]
-  gastosExtraordinarios: GastoExtraordinario[]
+  gastosExtraordinarios?: GastoExtraordinario[]
   ahorroInicial: number
   subidas: SubidaSalarial[]
   country: Country
@@ -72,9 +73,8 @@ const DEFAULT_STATE: IngresosState = {
   brutoAnual: 40_000,
   otrosIngresos: [],
   gastos: [
-    { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA }
+    { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA, tipo: 'mes' }
   ],
-  gastosExtraordinarios: [],
   ahorroInicial: 80_000,
   country: 'spain',
   subidas: [],
@@ -149,7 +149,6 @@ export function Ingresos() {
   const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '2027-11-01')
   const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', 100_000)
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)
-  const [gastosExtraordinariosExpanded, setGastosExtraordinariosExpanded] = useState<boolean>(false)
   const [otrosIngresosExpanded, setOtrosIngresosExpanded] = useState<boolean>(false)
   const [brutoUnidad, setBrutoUnidad] = useState<'año' | 'mes'>('año')
   const [otrosIngresosUnidades, setOtrosIngresosUnidades] = useState<Record<string, 'mes' | 'año'>>({})
@@ -157,24 +156,40 @@ export function Ingresos() {
   const toggleOtroIngresoUnidad = (id: string) =>
     setOtrosIngresosUnidades(prev => ({ ...prev, [id]: (prev[id] ?? 'mes') === 'mes' ? 'año' : 'mes' }))
 
-  // One-time migration: if old state has gastosFijos but no gastos, convert it
+  // One-time migrations: convert legacy formats
   useEffect(() => {
     if (!state.gastos) {
       const legacy = (state as IngresosState & LegacyIngresosState).gastosFijos ?? 800
-      setState(prev => ({ ...prev, gastos: [{ id: crypto.randomUUID(), descripcion: 'Gastos fijos', valor: legacy }] }))
+      setState(prev => ({ ...prev, gastos: [{ id: crypto.randomUUID(), descripcion: 'Gastos fijos', valor: legacy, tipo: 'mes' as const }] }))
+    }
+    if ((state.gastosExtraordinarios ?? []).length > 0) {
+      const converted = (state.gastosExtraordinarios ?? []).map(g => ({
+        id: g.id,
+        descripcion: g.descripcion,
+        valor: g.importe,
+        tipo: 'vez' as const,
+      }))
+      setState(prev => ({
+        ...prev,
+        gastos: [...(prev.gastos ?? []), ...converted],
+        gastosExtraordinarios: [],
+      }))
     }
   }, [state, setState])
 
   const gastosList = state.gastos ?? []
-  const totalGastos = gastosList.reduce((sum, g) => sum + g.valor, 0)
+  const totalGastos = gastosList.reduce((sum, g) => {
+    const tipo = g.tipo ?? 'mes'
+    if (tipo === 'vez') return sum
+    return sum + (tipo === 'año' ? g.valor / 12 : g.valor)
+  }, 0)
+  const totalGastosVez = gastosList.filter(g => g.tipo === 'vez').reduce((sum, g) => sum + g.valor, 0)
 
   const otrosIngresosList = state.otrosIngresos ?? []
   const totalOtrosIngresosMensual = otrosIngresosList.reduce((sum, i) => sum + i.valor, 0)
   const brutoAnualTotal = state.brutoAnual + totalOtrosIngresosMensual * 12
 
-  const gastosExtraordinariosLista = state.gastosExtraordinarios ?? []
-  const totalGastosExtraordinarios = gastosExtraordinariosLista.reduce((sum, g) => sum + g.importe, 0)
-  const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(state.ahorroInicial, totalGastosExtraordinarios)
+  const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(state.ahorroInicial, totalGastosVez)
 
   const netoInfo = calcularSalarioNeto(brutoAnualTotal, state.country ?? 'spain')
   const ahorroMensual = netoInfo.netoMensual - totalGastos
@@ -183,10 +198,14 @@ export function Ingresos() {
   const fullProjection = useMemo(() => {
     const subidasOrdenadas = [...state.subidas].sort((a, b) => a.mes - b.mes)
     const data: ChartPoint[] = []
-    const gastosExtraordTotal = (state.gastosExtraordinarios ?? []).reduce((sum, g) => sum + g.importe, 0)
-    let ahorroAcum = calcularAhorroInicialEfectivo(state.ahorroInicial, gastosExtraordTotal)
+    const gastosVezTotal = (state.gastos ?? []).filter(g => g.tipo === 'vez').reduce((sum, g) => sum + g.valor, 0)
+    let ahorroAcum = calcularAhorroInicialEfectivo(state.ahorroInicial, gastosVezTotal)
     let brutoActual = state.brutoAnual
-    const gastosMensuales = (state.gastos ?? []).reduce((sum, g) => sum + g.valor, 0)
+    const gastosMensuales = (state.gastos ?? []).reduce((sum, g) => {
+      const tipo = g.tipo ?? 'mes'
+      if (tipo === 'vez') return sum
+      return sum + (tipo === 'año' ? g.valor / 12 : g.valor)
+    }, 0)
     const otrosIngresosMensual = (state.otrosIngresos ?? []).reduce((sum, i) => sum + i.valor, 0)
 
     for (let m = 0; m <= MAX_HORIZONTE_MESES; m++) {
@@ -207,7 +226,7 @@ export function Ingresos() {
       })
     }
     return data
-  }, [state.brutoAnual, state.otrosIngresos, state.gastos, state.gastosExtraordinarios, state.ahorroInicial, state.subidas, state.country])
+  }, [state.brutoAnual, state.otrosIngresos, state.gastos, state.ahorroInicial, state.subidas, state.country])
 
   const chartData = useMemo(
     () => fullProjection.slice(0, horizonYears * 12 + 1),
@@ -251,7 +270,20 @@ export function Ingresos() {
   const addGasto = () => {
     setState(prev => ({
       ...prev,
-      gastos: [...(prev.gastos ?? []), { id: crypto.randomUUID(), descripcion: '', valor: 0 }],
+      gastos: [...(prev.gastos ?? []), { id: crypto.randomUUID(), descripcion: '', valor: 0, tipo: 'mes' as const }],
+    }))
+  }
+
+  const cycleGastoTipo = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      gastos: (prev.gastos ?? []).map(g => {
+        if (g.id !== id) return g
+        const tipo = g.tipo ?? 'mes'
+        if (tipo === 'mes') return { ...g, tipo: 'año' as const, valor: Math.round(g.valor * 12) }
+        if (tipo === 'año') return { ...g, tipo: 'vez' as const }
+        return { ...g, tipo: 'mes' as const, valor: Math.round(g.valor / 12) }
+      }),
     }))
   }
 
@@ -267,6 +299,7 @@ export function Ingresos() {
         id: crypto.randomUUID(),
         descripcion: 'Cuota hipotecaria',
         valor: Math.round(hipoteca.cuotaMensual),
+        tipo: 'mes' as const,
       }],
     }))
   }
@@ -297,27 +330,6 @@ export function Ingresos() {
     setState(prev => ({
       ...prev,
       otrosIngresos: (prev.otrosIngresos ?? []).map(i => i.id === id ? { ...i, [field]: value } : i),
-    }))
-  }
-
-  const addGastoExtraordinario = () => {
-    setState(prev => ({
-      ...prev,
-      gastosExtraordinarios: [...(prev.gastosExtraordinarios ?? []), { id: crypto.randomUUID(), descripcion: '', importe: 0 }],
-    }))
-  }
-
-  const removeGastoExtraordinario = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      gastosExtraordinarios: (prev.gastosExtraordinarios ?? []).filter(g => g.id !== id),
-    }))
-  }
-
-  const updateGastoExtraordinario = (id: string, field: 'descripcion' | 'importe', value: string | number) => {
-    setState(prev => ({
-      ...prev,
-      gastosExtraordinarios: (prev.gastosExtraordinarios ?? []).map(g => g.id === id ? { ...g, [field]: value } : g),
     }))
   }
 
@@ -502,7 +514,7 @@ export function Ingresos() {
             aria-expanded={gastosExpanded}
           >
             <div className="gastos__title">
-              <h3>Gastos mensuales</h3>
+              <h3>Gastos periódicos</h3>
               <span className="gastos__total">{fmt(totalGastos)} €/mes</span>
             </div>
             <span className={`gastos__toggle${gastosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
@@ -512,79 +524,45 @@ export function Ingresos() {
               {gastosList.length === 0 && (
                 <p className="gastos__empty">Sin gastos añadidos</p>
               )}
-              {gastosList.map(gasto => (
-                <div key={gasto.id} className="gasto-row">
-                  <input
-                    type="text"
-                    className="gasto-desc"
-                    placeholder="Descripción"
-                    value={gasto.descripcion}
-                    onChange={e => updateGasto(gasto.id, 'descripcion', e.target.value)}
-                  />
-                  <div className="input-group gasto-value">
+              {gastosList.map(gasto => {
+                const tipo = gasto.tipo ?? 'mes'
+                const step = tipo === 'mes' ? 50 : 100
+                const tipoLabel = tipo === 'vez' ? '1 vez' : `€/${tipo}`
+                return (
+                  <div key={gasto.id} className="gasto-row">
                     <input
-                      type="number"
-                      min={0}
-                      step={50}
-                      value={gasto.valor}
-                      onFocus={e => e.target.select()}
-                      onChange={e => updateGasto(gasto.id, 'valor', Number(e.target.value))}
+                      type="text"
+                      className="gasto-desc"
+                      placeholder="Descripción"
+                      value={gasto.descripcion}
+                      onChange={e => updateGasto(gasto.id, 'descripcion', e.target.value)}
                     />
-                    <span className="suffix">€/mes</span>
+                    <div className="input-group gasto-value">
+                      <input
+                        type="number"
+                        min={0}
+                        step={step}
+                        value={gasto.valor}
+                        onFocus={e => e.target.select()}
+                        onChange={e => updateGasto(gasto.id, 'valor', Number(e.target.value))}
+                      />
+                      <button
+                        type="button"
+                        className="suffix suffix--toggle"
+                        onClick={() => cycleGastoTipo(gasto.id)}
+                        title="Cambiar unidad"
+                      >
+                        {tipoLabel}
+                      </button>
+                    </div>
+                    <button type="button" className="btn-remove" onClick={() => removeGasto(gasto.id)}>✕</button>
                   </div>
-                  <button type="button" className="btn-remove" onClick={() => removeGasto(gasto.id)}>✕</button>
-                </div>
-              ))}
+                )
+              })}
               <div className="gastos__add-row">
                 <button type="button" className="btn-add" onClick={addGasto}>+ Añadir gasto</button>
                 <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsGasto}>🏠 Añadir hipoteca</button>
               </div>
-            </div>
-          )}
-        </div>
-
-        <div className="gastos">
-          <button
-            type="button"
-            className="gastos__header"
-            onClick={() => setGastosExtraordinariosExpanded(prev => !prev)}
-            aria-expanded={gastosExtraordinariosExpanded}
-          >
-            <div className="gastos__title">
-              <h3>Gastos extraordinarios</h3>
-              <span className="gastos__total">{fmt(totalGastosExtraordinarios)} €</span>
-            </div>
-            <span className={`gastos__toggle${gastosExtraordinariosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
-          </button>
-          {gastosExtraordinariosExpanded && (
-            <div className="gastos__body">
-              {gastosExtraordinariosLista.length === 0 && (
-                <p className="gastos__empty">Sin gastos añadidos</p>
-              )}
-              {gastosExtraordinariosLista.map(gasto => (
-                <div key={gasto.id} className="gasto-row">
-                  <input
-                    type="text"
-                    className="gasto-desc"
-                    placeholder="Descripción"
-                    value={gasto.descripcion}
-                    onChange={e => updateGastoExtraordinario(gasto.id, 'descripcion', e.target.value)}
-                  />
-                  <div className="input-group gasto-value">
-                    <input
-                      type="number"
-                      min={0}
-                      step={100}
-                      value={gasto.importe}
-                      onFocus={e => e.target.select()}
-                      onChange={e => updateGastoExtraordinario(gasto.id, 'importe', Number(e.target.value))}
-                    />
-                    <span className="suffix">€</span>
-                  </div>
-                  <button type="button" className="btn-remove" onClick={() => removeGastoExtraordinario(gasto.id)}>✕</button>
-                </div>
-              ))}
-              <button type="button" className="btn-add gastos__add" onClick={addGastoExtraordinario}>+ Añadir gasto</button>
             </div>
           )}
         </div>
@@ -605,12 +583,12 @@ export function Ingresos() {
           </div>
         </div>
 
-        {totalGastosExtraordinarios > 0 && (
+        {totalGastosVez > 0 && (
           <div className="field field--computed">
             <label>Ahorro actual disponible</label>
             <div className={`computed-value ${ahorroInicialEfectivo < 0 ? 'computed-value--negative' : ''}`}>
               {fmt(ahorroInicialEfectivo)} €
-              <span className="detail">Ahorro actual {fmt(state.ahorroInicial)} € − Gastos extraordinarios {fmt(totalGastosExtraordinarios)} €</span>
+              <span className="detail">Ahorro actual {fmt(state.ahorroInicial)} € − Gastos únicos {fmt(totalGastosVez)} €</span>
             </div>
           </div>
         )}

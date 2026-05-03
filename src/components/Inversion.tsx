@@ -46,7 +46,7 @@ interface MinimalHipotecaState {
 
 interface MinimalIngresosState {
   brutoAnual: number
-  gastos?: Array<{ valor: number }>
+  gastos?: Array<{ valor: number; tipo?: 'mes' | 'año' | 'vez' }>
   gastosExtraordinarios?: Array<{ importe: number }>
   ahorroInicial?: number
   country?: Country
@@ -304,10 +304,15 @@ export function Inversion() {
   }
 
   const addAhorroAsInversion = () => {
-    const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+    const totalGastosVez = (ingresosState.gastos ?? []).filter(g => g.tipo === 'vez').reduce((s, g) => s + g.valor, 0)
+    const totalGastosExtraordinarios = totalGastosVez + (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
     const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
 
-    const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
+    const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => {
+      const tipo = g.tipo ?? 'mes'
+      if (tipo === 'vez') return s
+      return s + (tipo === 'año' ? g.valor / 12 : g.valor)
+    }, 0)
     const netoMensual = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain').netoMensual
     const ahorroMensual = netoMensual - totalGastos
 

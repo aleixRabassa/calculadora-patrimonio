@@ -70,6 +70,7 @@ interface GastoMensual {
   id: string
   descripcion: string
   valor: number
+  tipo?: 'mes' | 'año' | 'vez'
 }
 
 interface GastoExtraordinario {
@@ -88,7 +89,7 @@ interface IngresosState {
   brutoAnual: number
   otrosIngresos?: OtroIngreso[]
   gastos: GastoMensual[]
-  gastosExtraordinarios: GastoExtraordinario[]
+  gastosExtraordinarios?: GastoExtraordinario[]
   ahorroInicial: number
   country: Country
 }
@@ -120,7 +121,6 @@ interface InversionState {
 const DEFAULT_INGRESOS: IngresosState = {
   brutoAnual: 40_000,
   gastos: [],
-  gastosExtraordinarios: [],
   ahorroInicial: 0,
   country: 'spain',
 }
@@ -179,9 +179,14 @@ export function Patrimonio() {
   )
 
   const gastosList = useMemo(() => ingresosState.gastos ?? [], [ingresosState.gastos])
-  const totalGastos = gastosList.reduce((s, g) => s + g.valor, 0)
+  const totalGastos = gastosList.reduce((s, g) => {
+    const tipo = g.tipo ?? 'mes'
+    if (tipo === 'vez') return s
+    return s + (tipo === 'año' ? g.valor / 12 : g.valor)
+  }, 0)
 
-  const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+  const totalGastosVez = gastosList.filter(g => g.tipo === 'vez').reduce((s, g) => s + g.valor, 0)
+  const totalGastosExtraordinarios = totalGastosVez + (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
   const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
 
   const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
