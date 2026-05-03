@@ -184,6 +184,19 @@
   text-align: left;
 }
 
+.inversion-table__add-row .btn-add--secondary {
+  margin-left: 8px;
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+
+  &:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+}
+
 .inversion-table__footer-label {
   font-size: 13px;
   font-weight: 600;

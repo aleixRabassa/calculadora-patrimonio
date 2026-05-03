@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Area, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { generateInvestmentSchedule } from '../utils/calculations'
+import { calcularHipoteca, generateInvestmentSchedule } from '../utils/calculations'
 import './Inversion.css'
 import './Ingresos.css'
 
@@ -114,6 +114,18 @@ export function Inversion() {
   const [horizonYears, setHorizonYears] = useState<number>(10)
   const [openColorId, setOpenColorId] = useState<string | null>(null)
 
+  // Read hipoteca state to enable "add property as investment" feature
+  interface MinimalHipotecaState {
+    propertyPrice: number
+    parkingPrice: number
+    financingPct: number
+    interestRate: number
+    termYears: number
+  }
+  const [hipotecaState] = useLocalStorage<MinimalHipotecaState>('calc.hipoteca', {
+    propertyPrice: 200_000, parkingPrice: 0, financingPct: 100, interestRate: 3, termYears: 25,
+  })
+
   useEffect(() => {
     if (!openColorId) return
     const handler = (e: MouseEvent) => {
@@ -187,6 +199,40 @@ export function Inversion() {
     setState(prev => ({
       ...prev,
       inversiones: (prev.inversiones ?? []).map(i => i.id === id ? { ...i, [field]: value } : i),
+    }))
+  }
+
+  const addHipotecaAsInversion = () => {
+    const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
+    const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
+    const hipoteca = calcularHipoteca(totalPrice, totalPrice - financedAmount, hipotecaState.interestRate, hipotecaState.termYears)
+
+    const usedColors = new Set(inversiones.map(i => i.color))
+    const availableColors = PALETTE_COLORS.filter(c => !usedColors.has(c))
+    const colorPiso = availableColors[0] ?? PALETTE_COLORS[(inversiones.length) % PALETTE_COLORS.length]
+    const colorHipoteca = availableColors[1] ?? PALETTE_COLORS[(inversiones.length + 1) % PALETTE_COLORS.length]
+
+    setState(prev => ({
+      ...prev,
+      inversiones: [
+        ...(prev.inversiones ?? []),
+        {
+          id: crypto.randomUUID(),
+          descripcion: 'Piso (activo)',
+          capitalInicial: totalPrice,
+          aportacionMensual: 0,
+          rentabilidadAnual: 2,
+          color: colorPiso,
+        },
+        {
+          id: crypto.randomUUID(),
+          descripcion: 'Hipoteca (deuda)',
+          capitalInicial: -financedAmount,
+          aportacionMensual: hipoteca.cuotaMensual,
+          rentabilidadAnual: hipotecaState.interestRate,
+          color: colorHipoteca,
+        },
+      ],
     }))
   }
 
@@ -380,7 +426,7 @@ export function Inversion() {
                         type="number"
                         min={0}
                         step={50}
-                        value={inv.aportacionMensual}
+                        value={Math.round(inv.aportacionMensual)}
                         onFocus={e => e.target.select()}
                         onChange={e => updateInversion(inv.id, 'aportacionMensual', Number(e.target.value))}
                       />
@@ -414,6 +460,7 @@ export function Inversion() {
             <tr>
               <td colSpan={7} className="inversion-table__add-row">
                 <button type="button" className="btn-add" onClick={addInversion}>+ Añadir inversión</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion}>🏠 Añadir piso + hipoteca</button>
               </td>
             </tr>
           </tfoot>

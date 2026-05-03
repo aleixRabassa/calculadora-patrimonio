@@ -388,8 +388,8 @@ export function generateInvestmentSchedule(
   months: number,
 ): InvestmentPoint[] {
   if (
-    !isFinite(capitalInicial) || capitalInicial < 0 ||
-    !isFinite(aportacionMensual) || aportacionMensual < 0 ||
+    !isFinite(capitalInicial) ||
+    !isFinite(aportacionMensual) ||
     !isFinite(annualReturnPct) ||
     !isFinite(months) || months < 0
   ) {

@@ -600,10 +600,22 @@ describe('generateInvestmentSchedule', () => {
   })
 
   test('returns empty array for invalid inputs', () => {
-    expect(generateInvestmentSchedule(-1, 200, 7, 60)).toEqual([])
-    expect(generateInvestmentSchedule(10_000, -1, 7, 60)).toEqual([])
     expect(generateInvestmentSchedule(10_000, 200, 7, -1)).toEqual([])
     expect(generateInvestmentSchedule(NaN, 200, 7, 60)).toEqual([])
+  })
+
+  test('supports negative capitalInicial (debt modeling)', () => {
+    const schedule = generateInvestmentSchedule(-100_000, 500, 3, 12)
+    expect(schedule[0].value).toBe(-100_000)
+    // Debt grows by interest but monthly payments reduce it
+    expect(schedule[12].value).toBeGreaterThan(-100_000)
+  })
+
+  test('supports negative aportacionMensual', () => {
+    const schedule = generateInvestmentSchedule(10_000, -100, 5, 12)
+    expect(schedule[0].value).toBe(10_000)
+    // Value decreases due to negative contributions
+    expect(schedule[12].value).toBeLessThan(10_000)
   })
 
   test('with zero initial capital, only contributions grow', () => {
