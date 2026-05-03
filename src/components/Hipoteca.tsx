@@ -404,7 +404,7 @@ export function Hipoteca() {
         </div>
 
         <div className="field">
-          <label htmlFor="parkingPrice">Precio del parking/trastero</label>
+          <label htmlFor="parkingPrice">Precio del parking y trastero</label>
           <div className="input-group">
             <input
               id="parkingPrice"
@@ -425,8 +425,8 @@ export function Hipoteca() {
             <input
               id="financingPct"
               type="range"
-              min={50}
-              max={100}
+              min={30}
+              max={120}
               step={1}
               value={state.financingPct}
               onPointerDown={() => { slidingRef.current = true }}
@@ -465,7 +465,7 @@ export function Hipoteca() {
 
         <div className="field">
           <div className="field__label-row">
-            <label htmlFor="additionalEntry">Entrada adicional</label>
+            <label htmlFor="additionalEntry">Aportación propia</label>
             <button
               type="button"
               className={`sync-link${isSyncedWithInitialSavings ? ' sync-link--synced' : ''}`}
@@ -473,7 +473,7 @@ export function Hipoteca() {
                 if (totalPrice > 0) {
                   const effective = Math.max(0, ahorroInicialEfectivo)
                   const rawPct = (1 - effective / totalPrice) * 100
-                  setState(prev => ({ ...prev, financingPct: Math.max(50, Math.min(100, rawPct)) }))
+                  setState(prev => ({ ...prev, financingPct: Math.max(30, Math.min(120, rawPct)) }))
                 }
               }}
             >
@@ -492,7 +492,7 @@ export function Hipoteca() {
                 if (totalPrice <= 0) return
                 const euros = Number(e.target.value)
                 const rawPct = (1 - euros / totalPrice) * 100
-                setState(prev => ({ ...prev, financingPct: Math.max(50, Math.min(100, rawPct)) }))
+                setState(prev => ({ ...prev, financingPct: Math.max(30, Math.min(120, rawPct)) }))
               }}
             />
             <span className="suffix">€</span>
@@ -802,24 +802,26 @@ export function Hipoteca() {
             >
               <span>Simulación de cuotas</span>
               <span className="schedule-panel__header-actions">
-                {hasContributions && (
-                  <div className="segmented-control segmented-control--small" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      className={`segmented-control__option${includeAmortizations ? ' segmented-control__option--active' : ''}`}
-                      onClick={() => setIncludeAmortizations(true)}
-                    >
-                      Con amortizaciones
-                    </button>
-                    <button
-                      type="button"
-                      className={`segmented-control__option${!includeAmortizations ? ' segmented-control__option--active' : ''}`}
-                      onClick={() => setIncludeAmortizations(false)}
-                    >
-                      Sin amortizaciones
-                    </button>
-                  </div>
-                )}
+                <div
+                  className="segmented-control segmented-control--small"
+                  onClick={(e) => e.stopPropagation()}
+                  style={!hasContributions ? { visibility: 'hidden' } : undefined}
+                >
+                  <button
+                    type="button"
+                    className={`segmented-control__option${includeAmortizations ? ' segmented-control__option--active' : ''}`}
+                    onClick={() => setIncludeAmortizations(true)}
+                  >
+                    Con amortizaciones
+                  </button>
+                  <button
+                    type="button"
+                    className={`segmented-control__option${!includeAmortizations ? ' segmented-control__option--active' : ''}`}
+                    onClick={() => setIncludeAmortizations(false)}
+                  >
+                    Sin amortizaciones
+                  </button>
+                </div>
                 <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>
               </span>
             </button>
