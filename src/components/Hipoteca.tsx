@@ -50,10 +50,12 @@ const DEFAULT_STATE: HipotecaState = {
 interface MinimalIngresosState {
   brutoAnual: number
   gastos?: Array<{ valor: number }>
+  gastosExtraordinarios?: Array<{ importe: number }>
+  ahorroInicial?: number
   country?: Country
 }
 
-const INGRESOS_FALLBACK: MinimalIngresosState = { brutoAnual: 43_000, gastos: [], country: 'spain' }
+const INGRESOS_FALLBACK: MinimalIngresosState = { brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain' }
 
 interface ChartPoint {
   month: number
@@ -151,6 +153,9 @@ export function Hipoteca() {
   const ingresosNet = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain')
   const defaultAhorroMensual = Math.max(0, ingresosNet.netoMensual - ingresosExpenses)
   const annualizedSavings = Math.max(0, Math.round(defaultAhorroMensual * 12))
+
+  const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+  const ahorroInicialEfectivo = Math.max(0, (ingresosState.ahorroInicial ?? 0) - totalGastosExtraordinarios)
 
   // Initialise contribution field when absent (new users or migration).
   useEffect(() => {
@@ -281,7 +286,7 @@ export function Hipoteca() {
 
   // --- Amortization schedule table ---
   const [scheduleExpanded, setScheduleExpanded] = useState(false)
-  const [includeAmortizations, setIncludeAmortizations] = useState(true)
+  const [excludeAmortizations, setExcludeAmortizations] = useState(false)
 
   // Track slider dragging state to defer schedule recalc until release
   const slidingRef = useRef(false)
@@ -314,7 +319,7 @@ export function Hipoteca() {
   const committedCapital = (state.propertyPrice + state.parkingPrice) * (committedSliderState.financingPct / 100)
 
   const detailedSchedule = useMemo(() => {
-    const useEnhanced = includeAmortizations && enhancedSchedule && enhancedSchedule.length > 0
+    const useEnhanced = !excludeAmortizations && enhancedSchedule && enhancedSchedule.length > 0
     const schedule = useEnhanced
       ? enhancedSchedule
       : generateAmortizationSchedule(committedCapital, committedSliderState.interestRate, committedSliderState.termYears)
@@ -331,7 +336,7 @@ export function Hipoteca() {
         outstanding: point.outstandingPrincipal,
       }
     })
-  }, [committedCapital, committedSliderState.interestRate, committedSliderState.termYears, includeAmortizations, enhancedSchedule])
+  }, [committedCapital, committedSliderState.interestRate, committedSliderState.termYears, excludeAmortizations, enhancedSchedule])
 
   // --- Contribution handlers ---
   const [extraordinaryExpanded, setExtraordinaryExpanded] = useState(false)
@@ -371,6 +376,9 @@ export function Hipoteca() {
       extraordinaryContributions: (prev.extraordinaryContributions ?? []).map(c => c.id === id ? { ...c, [field]: value } : c),
     }))
   }
+
+  const additionalEntry= Math.round(totalPrice * (1 - state.financingPct / 100))
+  const isSyncedWithInitialSavings = additionalEntry === Math.round(ahorroInicialEfectivo)
 
   return (
     <section className="hipoteca">
@@ -423,7 +431,7 @@ export function Hipoteca() {
               onPointerUp={handleSliderCommit}
               onChange={e => setState(prev => ({ ...prev, financingPct: Number(e.target.value) }))}
             />
-            <span className="slider-value">{state.financingPct}%</span>
+            <span className="slider-value">{fmtPct(state.financingPct)}%</span>
           </div>
         </div>
 
@@ -450,6 +458,41 @@ export function Hipoteca() {
             <span className="detail">
               Aportación propia {fmt(downPayment)} € + ITP {fmt(itpAmount)} € + Gastos {fmt(purchaseCosts)} €
             </span>
+          </div>
+        </div>
+
+        <div className="field">
+          <div className="field__label-row">
+            <label htmlFor="additionalEntry">Entrada adicional</label>
+            <button
+              type="button"
+              className={`sync-link${isSyncedWithInitialSavings ? ' sync-link--synced' : ''}`}
+              onClick={() => {
+                if (totalPrice > 0) {
+                  const rawPct = (1 - ahorroInicialEfectivo / totalPrice) * 100
+                  setState(prev => ({ ...prev, financingPct: Math.max(50, Math.min(100, rawPct)) }))
+                }
+              }}
+            >
+              Ahorro actual efectivo: {fmt(ahorroInicialEfectivo)} €
+            </button>
+          </div>
+          <div className="input-group">
+            <input
+              id="additionalEntry"
+              type="number"
+              min={0}
+              step={1000}
+              value={additionalEntry}
+              onFocus={e => e.target.select()}
+              onChange={e => {
+                if (totalPrice <= 0) return
+                const euros = Number(e.target.value)
+                const rawPct = (1 - euros / totalPrice) * 100
+                setState(prev => ({ ...prev, financingPct: Math.max(50, Math.min(100, rawPct)) }))
+              }}
+            />
+            <span className="suffix">€</span>
           </div>
         </div>
 
@@ -759,11 +802,11 @@ export function Hipoteca() {
                 {hasContributions && (
                   <span
                     role="button"
-                    className={`schedule-panel__amort-toggle${includeAmortizations ? ' schedule-panel__amort-toggle--active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setIncludeAmortizations(prev => !prev) }}
-                    title="Incluir amortizaciones en la simulación"
+                    className={`schedule-panel__amort-toggle${excludeAmortizations ? ' schedule-panel__amort-toggle--active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); setExcludeAmortizations(prev => !prev) }}
+                    title="Excluir amortizaciones de la simulación"
                   >
-                    Incluir amortizaciones
+                    Excluir amortizaciones
                   </span>
                 )}
                 <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>

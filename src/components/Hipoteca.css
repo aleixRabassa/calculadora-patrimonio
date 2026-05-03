@@ -114,8 +114,12 @@
 }
 
 
-.hipoteca .gastos__header {
-  padding: 8px 12px;
+.hipoteca .gasto-value {
+  flex: 1.8;
+}
+
+
+  padding: 12px 12px;
 }
 
 .hipoteca .gastos__title h3 {
@@ -198,8 +202,8 @@
 }
 
 .segmented-control__option--active {
-  background: rgba(168, 128, 255, 0.15);
-  color: rgb(168, 128, 255);
+  background: var(--accent-bg);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -256,10 +260,10 @@
 }
 
 .schedule-panel__amort-toggle--active {
-  background: rgba(168, 128, 255, 0.15);
-  color: rgb(168, 128, 255);
+  background: var(--accent-bg);
+  color: var(--accent);
   font-weight: 600;
-  border-color: rgb(168, 128, 255);
+  border-color: var(--accent-border);
 }
 
 .schedule-panel__toggle {
