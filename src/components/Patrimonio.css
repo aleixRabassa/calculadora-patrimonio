@@ -1,0 +1,257 @@
+.patrimonio {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 24px;
+  text-align: left;
+}
+
+.patrimonio h2 {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+/* KPI hero row */
+.patrimonio__hero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero-card {
+  background: var(--code-bg);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-card__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.hero-card__value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: -0.5px;
+}
+
+.hero-card__value--accent {
+  color: var(--accent);
+}
+
+.hero-card__value--pos {
+  color: #48bb78;
+}
+
+.hero-card__value--neg {
+  color: #e53e3e;
+}
+
+.hero-card__detail {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* Charts grid */
+.patrimonio__charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-panel {
+  background: var(--code-bg);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 12px;
+  align-self: flex-start;
+}
+
+.chart-panel__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-value {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.legend-pct {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.7;
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Patrimonio neto breakdown */
+.patrimonio__breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.breakdown-card {
+  background: var(--code-bg);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.breakdown-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 10px;
+}
+
+.breakdown-card__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.breakdown-row__label {
+  color: var(--text);
+}
+
+.breakdown-row__value {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.breakdown-row__value--pos {
+  color: #48bb78;
+}
+
+.breakdown-row__value--neg {
+  color: #e53e3e;
+}
+
+.breakdown-row--total {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.breakdown-row--total .breakdown-row__label {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.breakdown-row--total .breakdown-row__value {
+  font-size: 15px;
+}
+
+/* Empty state */
+.patrimonio__empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text);
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* Recharts tooltip override */
+.patrimonio .recharts-wrapper,
+.patrimonio .recharts-wrapper *,
+.patrimonio .recharts-wrapper *:focus,
+.patrimonio .recharts-wrapper *:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Custom chart tooltip */
+.pie-tooltip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+.pie-tooltip__label {
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.pie-tooltip__value {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text-h);
+}

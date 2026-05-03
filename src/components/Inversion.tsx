@@ -60,15 +60,10 @@ const DEFAULT_INGRESOS: MinimalIngresosState = {
 
 function buildDefaultInversionState(): InversionState {
   let hipotecaState: MinimalHipotecaState = DEFAULT_HIPOTECA
-  let ingresosState: MinimalIngresosState = DEFAULT_INGRESOS
 
   try {
     const stored = localStorage.getItem('calc.hipoteca')
     if (stored) hipotecaState = { ...DEFAULT_HIPOTECA, ...(JSON.parse(stored) as MinimalHipotecaState) }
-  } catch { /* use defaults if localStorage is unavailable or corrupted */ }
-  try {
-    const stored = localStorage.getItem('calc.ingresos')
-    if (stored) ingresosState = { ...DEFAULT_INGRESOS, ...(JSON.parse(stored) as MinimalIngresosState) }
   } catch { /* use defaults if localStorage is unavailable or corrupted */ }
 
   const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
@@ -76,13 +71,7 @@ function buildDefaultInversionState(): InversionState {
   const additionalEntry = totalPrice - financedAmount
   const hipoteca = calcularHipoteca(totalPrice, additionalEntry, hipotecaState.interestRate, hipotecaState.termYears)
 
-  const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
-  const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
-  const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
-  const netoMensual = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain').netoMensual
-  const ahorroMensual = netoMensual - totalGastos
-
-  const hipotecaMensual = hipoteca.capital / (hipotecaState.termYears * 12)
+  const hipotecaMensual= hipoteca.capital / (hipotecaState.termYears * 12)
 
   return {
     inversiones: [
