@@ -34,13 +34,88 @@ interface InversionState {
   inflationPct: number
 }
 
-const DEFAULT_STATE: InversionState = {
-  inversiones: [
-    { id: 'inv-1', descripcion: 'ETF Global (MSCI World)', capitalInicial: 10_000, aportacionMensual: 300, rentabilidadAnual: 7, color: '#7c3aed' },
-    { id: 'inv-2', descripcion: 'Renta fija', capitalInicial: 5_000, aportacionMensual: 100, rentabilidadAnual: 3, color: '#10b981' },
-  ],
-  inflationPct: 2.5,
+interface MinimalHipotecaState {
+  propertyPrice: number
+  parkingPrice: number
+  financingPct: number
+  interestRate: number
+  termYears: number
 }
+
+interface MinimalIngresosState {
+  brutoAnual: number
+  gastos?: Array<{ valor: number }>
+  gastosExtraordinarios?: Array<{ importe: number }>
+  ahorroInicial?: number
+  country?: Country
+}
+
+const DEFAULT_HIPOTECA: MinimalHipotecaState = {
+  propertyPrice: 200_000, parkingPrice: 0, financingPct: 100, interestRate: 3, termYears: 25,
+}
+
+const DEFAULT_INGRESOS: MinimalIngresosState = {
+  brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain',
+}
+
+function buildDefaultInversionState(): InversionState {
+  let hipotecaState: MinimalHipotecaState = DEFAULT_HIPOTECA
+  let ingresosState: MinimalIngresosState = DEFAULT_INGRESOS
+
+  try {
+    const stored = localStorage.getItem('calc.hipoteca')
+    if (stored) hipotecaState = { ...DEFAULT_HIPOTECA, ...(JSON.parse(stored) as MinimalHipotecaState) }
+  } catch { /* use defaults if localStorage is unavailable or corrupted */ }
+  try {
+    const stored = localStorage.getItem('calc.ingresos')
+    if (stored) ingresosState = { ...DEFAULT_INGRESOS, ...(JSON.parse(stored) as MinimalIngresosState) }
+  } catch { /* use defaults if localStorage is unavailable or corrupted */ }
+
+  const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
+  const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
+  const additionalEntry = totalPrice - financedAmount
+  const hipoteca = calcularHipoteca(totalPrice, additionalEntry, hipotecaState.interestRate, hipotecaState.termYears)
+
+  const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+  const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
+  const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
+  const netoMensual = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain').netoMensual
+  const ahorroMensual = netoMensual - totalGastos
+
+  const hipotecaMensual = hipoteca.capital / (hipotecaState.termYears * 12)
+
+  return {
+    inversiones: [
+      {
+        id: 'default-inmueble',
+        descripcion: 'Inmueble (activo)',
+        capitalInicial: totalPrice,
+        aportacionMensual: 0,
+        rentabilidadAnual: 2,
+        color: '#ef4444',
+      },
+      {
+        id: 'default-hipoteca',
+        descripcion: 'Hipoteca (deuda)',
+        capitalInicial: -financedAmount,
+        aportacionMensual: hipotecaMensual,
+        rentabilidadAnual: hipotecaState.interestRate,
+        color: '#6366f1',
+      },
+      {
+        id: 'default-ahorro',
+        descripcion: 'Ahorro disponible',
+        capitalInicial: ahorroInicialEfectivo - additionalEntry,
+        aportacionMensual: ahorroMensual - hipotecaMensual,
+        rentabilidadAnual: 0,
+        color: '#10b981',
+      },
+    ],
+    inflationPct: 2.5,
+  }
+}
+
+const DEFAULT_STATE: InversionState = buildDefaultInversionState()
 
 interface ChartPoint {
   month: number
@@ -118,29 +193,8 @@ export function Inversion() {
   const [horizonYears, setHorizonYears] = useState<number>(10)
   const [openColorId, setOpenColorId] = useState<string | null>(null)
 
-  // Read hipoteca state to enable "add property as investment" feature
-  interface MinimalHipotecaState {
-    propertyPrice: number
-    parkingPrice: number
-    financingPct: number
-    interestRate: number
-    termYears: number
-  }
-  const [hipotecaState] = useLocalStorage<MinimalHipotecaState>('calc.hipoteca', {
-    propertyPrice: 200_000, parkingPrice: 0, financingPct: 100, interestRate: 3, termYears: 25,
-  })
-
-  // Read ingresos state to enable "add available savings as investment" feature
-  interface MinimalIngresosState {
-    brutoAnual: number
-    gastos?: Array<{ valor: number }>
-    gastosExtraordinarios?: Array<{ importe: number }>
-    ahorroInicial?: number
-    country?: Country
-  }
-  const [ingresosState] = useLocalStorage<MinimalIngresosState>('calc.ingresos', {
-    brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain',
-  })
+  const [hipotecaState] = useLocalStorage<MinimalHipotecaState>('calc.hipoteca', DEFAULT_HIPOTECA)
+  const [ingresosState] = useLocalStorage<MinimalIngresosState>('calc.ingresos', DEFAULT_INGRESOS)
 
   useEffect(() => {
     if (!openColorId) return
@@ -264,10 +318,11 @@ export function Inversion() {
     const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
     const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
     const additionalEntry = totalPrice - financedAmount
-    const { cuotaMensual } = calcularHipoteca(totalPrice, financedAmount, hipotecaState.interestRate, hipotecaState.termYears)
+
+    const totalOtherContributions = inversiones.reduce((s, inv) => s + inv.aportacionMensual, 0)
 
     const capitalInicial = ahorroInicialEfectivo - additionalEntry
-    const aportacionMensual = ahorroMensual - cuotaMensual
+    const aportacionMensual = ahorroMensual - totalOtherContributions
 
     const usedColors = new Set(inversiones.map(i => i.color))
     const color = PALETTE_COLORS.find(c => !usedColors.has(c)) ?? PALETTE_COLORS[inversiones.length % PALETTE_COLORS.length]
@@ -443,10 +498,10 @@ export function Inversion() {
                   ?
                   <span className="col-info__tooltip">
                     <strong>Ahorro disponible</strong><br />
-                    Ahorro actual disponible menos la entrada de la hipoteca.<br />
-                    Aportación: ahorro mensual (neto − gastos) menos la cuota hipotecaria.<br />
+                    Capital inicial: ahorro disponible menos la entrada de la hipoteca.<br />
+                    Aportación: ahorro mensual (neto − gastos) menos la suma de las aportaciones mensuales del resto de filas de la tabla. Si la hipoteca ya está en la lista, su cuota se descuenta automáticamente.<br />
                     <br />
-                    <strong>Deudas (hipoteca)</strong><br />
+                    <strong>Hipoteca (deuda)</strong><br />
                     Solo la amortización de capital:<br />
                     <em>capital financiado ÷ (años × 12)</em><br />
                     No incluye intereses.
