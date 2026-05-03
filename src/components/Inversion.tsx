@@ -365,7 +365,18 @@ export function Inversion() {
               <th className="inversion-table__col--num">Capital inicial</th>
               <th className="inversion-table__col--num">
                 Aport. mensual
-                <span className="col-info" aria-label="En activos: aportación mensual libre. En deudas (hipoteca): amortización media de capital = capital financiado ÷ (años × 12). No incluye intereses.">?</span>
+                <span className="col-info" tabIndex={0}>
+                  ?
+                  <span className="col-info__tooltip">
+                    <strong>Activos</strong><br />
+                    Aportación mensual libre definida por el usuario.<br />
+                    <br />
+                    <strong>Deudas (hipoteca)</strong><br />
+                    Solo la amortización de capital:<br />
+                    <em>capital financiado ÷ (años × 12)</em><br />
+                    No incluye intereses.
+                  </span>
+                </span>
               </th>
               <th className="inversion-table__col--num">Rentabilidad anual</th>
               <th className="inversion-table__col--num">Valor a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</th>
