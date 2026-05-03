@@ -54,7 +54,7 @@ const DEFAULT_STATE: IngresosState = {
     { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA }
   ],
   gastosExtraordinarios: [],
-  ahorroInicial: 40_000,
+  ahorroInicial: 80_000,
   country: 'spain',
   subidas: [],
 }

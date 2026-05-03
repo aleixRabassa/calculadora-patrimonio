@@ -31,6 +31,7 @@ interface HipotecaState {
   itpPct: number
   termYears: number
   interestRate: number
+  additionalEntry: number
   annualContribution?: number
   extraordinaryContributions: ExtraordinaryContribution[]
   amortizationType: 'plazo' | 'cuota'
@@ -43,6 +44,7 @@ const DEFAULT_STATE: HipotecaState = {
   itpPct: 10,
   termYears: 30,
   interestRate: 3,
+  additionalEntry: 0,
   annualContribution: 0,
   extraordinaryContributions: [],
   amortizationType: 'plazo',
@@ -175,7 +177,8 @@ export function Hipoteca() {
   const purchaseCosts = totalPrice * 0.01
   const totalEntry = downPayment + itpAmount + purchaseCosts
 
-  const hipoteca = calcularHipoteca(totalPrice, downPayment, state.interestRate, state.termYears)
+  const stateAdditionalEntry = state.additionalEntry ?? 0
+  const hipoteca = calcularHipoteca(totalPrice, downPayment + stateAdditionalEntry, state.interestRate, state.termYears)
 
   // Contribution totals
   const annualExtraPayment = state.annualContribution ?? 0
@@ -379,8 +382,8 @@ export function Hipoteca() {
     }))
   }
 
-  const additionalEntry = Math.round(totalPrice * (1 - state.financingPct / 100))
-  const isSyncedWithInitialSavings = additionalEntry === Math.round(Math.max(0, ahorroInicialEfectivo))
+  const surplusSavings = Math.max(0, ahorroInicialEfectivo - totalEntry)
+  const isSyncedWithSurplus = stateAdditionalEntry === Math.round(surplusSavings)
 
   return (
     <section className="hipoteca">
@@ -458,35 +461,31 @@ export function Hipoteca() {
             <label>Entrada necesaria</label>
             <button
               type="button"
-              className={`sync-link${state.financingPct === 100 ? ' sync-link--synced' : ''}`}
-              onClick={() => setState(prev => ({ ...prev, financingPct: 100 }))}
+              className={`sync-link${Math.abs(totalEntry) < 1 ? ' sync-link--synced' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, financingPct: 101 + prev.itpPct, additionalEntry: 0 }))}
             >
-              Sin entrada propia
+              Calcular sin entrada
             </button>
           </div>
           <div className="computed-value">
             {fmt(totalEntry)} €
             <span className="detail">
-              Aportación propia {fmt(downPayment)} € + ITP {fmt(itpAmount)} € + Gastos {fmt(purchaseCosts)} €
+              Entrada bruta {fmt(downPayment)} € + ITP {fmt(itpAmount)} € + Gastos {fmt(purchaseCosts)} €
             </span>
           </div>
         </div>
 
         <div className="field">
           <div className="field__label-row">
-            <label htmlFor="additionalEntry">Aportación propia</label>
+            <label htmlFor="additionalEntry">Entrada adicional</label>
             <button
               type="button"
-              className={`sync-link${isSyncedWithInitialSavings ? ' sync-link--synced' : ''}`}
+              className={`sync-link${isSyncedWithSurplus ? ' sync-link--synced' : ''}`}
               onClick={() => {
-                if (totalPrice > 0) {
-                  const effective = Math.max(0, ahorroInicialEfectivo)
-                  const rawPct = (1 - effective / totalPrice) * 100
-                  setState(prev => ({ ...prev, financingPct: Math.max(30, Math.min(120, rawPct)) }))
-                }
+                setState(prev => ({ ...prev, additionalEntry: Math.round(surplusSavings) }))
               }}
             >
-              Ahorro actual disponible: {fmt(Math.max(0, ahorroInicialEfectivo))} €
+              Ahorro disponible: {fmt(surplusSavings)} €
             </button>
           </div>
           <div className="input-group">
@@ -495,14 +494,9 @@ export function Hipoteca() {
               type="number"
               min={0}
               step={1000}
-              value={additionalEntry}
+              value={stateAdditionalEntry}
               onFocus={e => e.target.select()}
-              onChange={e => {
-                if (totalPrice <= 0) return
-                const euros = Number(e.target.value)
-                const rawPct = (1 - euros / totalPrice) * 100
-                setState(prev => ({ ...prev, financingPct: Math.max(30, Math.min(120, rawPct)) }))
-              }}
+              onChange={e => setState(prev => ({ ...prev, additionalEntry: Math.max(0, Number(e.target.value)) }))}
             />
             <span className="suffix">€</span>
           </div>

@@ -38,8 +38,10 @@ interface MinimalHipotecaState {
   propertyPrice: number
   parkingPrice: number
   financingPct: number
+  itpPct: number
   interestRate: number
   termYears: number
+  additionalEntry: number
 }
 
 interface MinimalIngresosState {
@@ -51,7 +53,7 @@ interface MinimalIngresosState {
 }
 
 const DEFAULT_HIPOTECA: MinimalHipotecaState = {
-  propertyPrice: 200_000, parkingPrice: 0, financingPct: 80, interestRate: 3, termYears: 30,
+  propertyPrice: 200_000, parkingPrice: 0, financingPct: 80, itpPct: 10, interestRate: 3, termYears: 30, additionalEntry: 0,
 }
 
 const DEFAULT_INGRESOS: MinimalIngresosState = {
@@ -68,10 +70,12 @@ function buildDefaultInversionState(): InversionState {
 
   const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
   const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
-  const additionalEntry = totalPrice - financedAmount
-  const hipoteca = calcularHipoteca(totalPrice, additionalEntry, hipotecaState.interestRate, hipotecaState.termYears)
+  const downPayment = totalPrice - financedAmount
+  const stateAdditionalEntry = hipotecaState.additionalEntry ?? 0
+  const hipoteca = calcularHipoteca(totalPrice, downPayment + stateAdditionalEntry, hipotecaState.interestRate, hipotecaState.termYears)
+  const actualFinanced = hipoteca.capital
 
-  const hipotecaMensual= hipoteca.capital / (hipotecaState.termYears * 12)
+  const hipotecaMensual = actualFinanced / (hipotecaState.termYears * 12)
 
   return {
     inversiones: [
@@ -86,7 +90,7 @@ function buildDefaultInversionState(): InversionState {
       {
         id: 'default-hipoteca',
         descripcion: 'Hipoteca (deuda)',
-        capitalInicial: -financedAmount,
+        capitalInicial: -actualFinanced,
         aportacionMensual: hipotecaMensual,
         rentabilidadAnual: hipotecaState.interestRate,
         color: '#6366f1',
@@ -265,7 +269,10 @@ export function Inversion() {
   const addHipotecaAsInversion = () => {
     const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
     const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
-    const hipoteca = calcularHipoteca(totalPrice, totalPrice - financedAmount, hipotecaState.interestRate, hipotecaState.termYears)
+    const downPayment = totalPrice - financedAmount
+    const entradaAdicional = hipotecaState.additionalEntry ?? 0
+    const hipoteca = calcularHipoteca(totalPrice, downPayment + entradaAdicional, hipotecaState.interestRate, hipotecaState.termYears)
+    const actualFinanced = hipoteca.capital
 
     const usedColors = new Set(inversiones.map(i => i.color))
     const availableColors = PALETTE_COLORS.filter(c => !usedColors.has(c))
@@ -286,9 +293,9 @@ export function Inversion() {
         },
         {
           id: crypto.randomUUID(),
-          descripcion: 'Deudas',
-          capitalInicial: -financedAmount,
-          aportacionMensual: hipoteca.capital / (hipotecaState.termYears * 12),
+          descripcion: 'Hipoteca (deuda)',
+          capitalInicial: -actualFinanced,
+          aportacionMensual: actualFinanced / (hipotecaState.termYears * 12),
           rentabilidadAnual: hipotecaState.interestRate,
           color: colorHipoteca,
         },
@@ -306,13 +313,17 @@ export function Inversion() {
 
     const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
     const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
-    const additionalEntry = totalPrice - financedAmount
+    const downPayment = totalPrice - financedAmount
+    const itpAmount = totalPrice * ((hipotecaState.itpPct ?? 10) / 100)
+    const purchaseCosts = totalPrice * 0.01
+    const totalEntry = downPayment + itpAmount + purchaseCosts
+    const entradaAdicional = hipotecaState.additionalEntry ?? 0
 
     // Only sum contributions from non-savings rows
     const nonSavingsRows = inversiones.filter(inv => inv.descripcion !== 'Ahorro disponible')
     const totalOtherContributions = nonSavingsRows.reduce((s, inv) => s + inv.aportacionMensual, 0)
 
-    const capitalInicial = ahorroInicialEfectivo - additionalEntry
+    const capitalInicial = ahorroInicialEfectivo - totalEntry - entradaAdicional
     const aportacionMensual = ahorroMensual - totalOtherContributions
 
     const existingAhorro = inversiones.find(inv => inv.descripcion === 'Ahorro disponible')
@@ -506,7 +517,7 @@ export function Inversion() {
                 </span>
               </th>
               <th className="inversion-table__col--num">
-                Aport. mensual
+                Aportación mensual
                 <span className="col-info" tabIndex={0}>
                   ?
                   <span className="col-info__tooltip">
