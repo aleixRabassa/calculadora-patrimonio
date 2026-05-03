@@ -144,6 +144,13 @@
   color: rgb(99, 200, 132) !important;
 }
 
+.computed-value .hipoteca__last-payment-note {
+  display: inline;
+  margin-top: 0;
+  margin-left: 0.3em;
+}
+
+
 .hipoteca__charts .recharts-wrapper,
 .hipoteca__charts .recharts-wrapper *,
 .hipoteca__charts .recharts-wrapper *:focus,
