@@ -13,7 +13,7 @@ import type { Country, ScheduledContribution } from '../utils/calculations'
 import './Hipoteca.css'
 import './Ingresos.css'
 
-const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
+const fmt = (n: number) => (Math.round(n) || 0).toLocaleString('es-ES')
 const fmtDec = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
@@ -458,7 +458,15 @@ export function Hipoteca() {
 
         <div className="field field--computed">
           <div className="field__label-row">
-            <label>Entrada necesaria</label>
+            <label>
+              Entrada necesaria
+              <span className="col-info" tabIndex={0}>
+                ?
+                <span className="col-info__tooltip">
+                  <strong>¿Ya tienes la hipoteca en curso?</strong> Usa <em>Calcular sin entrada</em> para modelar solo la cuota mensual sin asumir esta inversión inicial.
+                </span>
+              </span>
+            </label>
             <button
               type="button"
               className={`sync-link${Math.abs(totalEntry) < 1 ? ' sync-link--synced' : ''}`}

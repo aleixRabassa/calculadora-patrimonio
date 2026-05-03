@@ -251,7 +251,7 @@ export function Patrimonio() {
           <span className="hero-card__detail">IRPF efectivo: {fmtPct(neto.tipoEfectivoIRPF)}%</span>
         </div>
         <div className="hero-card">
-          <span className="hero-card__label">Ahorro mensual</span>
+          <span className="hero-card__label">Ahorro mensual en {ingresosState.country === 'andorra' ? 'Andorra' : 'España'}</span>
           <span className={`hero-card__value ${ahorroMensual >= 0 ? 'hero-card__value--pos' : 'hero-card__value--neg'}`}>
             {fmt(ahorroMensual)} €/mes
           </span>
