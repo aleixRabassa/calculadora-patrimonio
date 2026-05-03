@@ -151,6 +151,11 @@ export function Ingresos() {
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)
   const [gastosExtraordinariosExpanded, setGastosExtraordinariosExpanded] = useState<boolean>(false)
   const [otrosIngresosExpanded, setOtrosIngresosExpanded] = useState<boolean>(false)
+  const [brutoUnidad, setBrutoUnidad] = useState<'año' | 'mes'>('año')
+  const [otrosIngresosUnidades, setOtrosIngresosUnidades] = useState<Record<string, 'mes' | 'año'>>({})
+
+  const toggleOtroIngresoUnidad = (id: string) =>
+    setOtrosIngresosUnidades(prev => ({ ...prev, [id]: (prev[id] ?? 'mes') === 'mes' ? 'año' : 'mes' }))
 
   // One-time migration: if old state has gastosFijos but no gastos, convert it
   useEffect(() => {
@@ -363,18 +368,28 @@ export function Ingresos() {
         <h2>Ingresos y Ahorro</h2>
 
         <div className="field">
-          <label htmlFor="brutoAnual">Salario bruto anual</label>
+          <label htmlFor="brutoAnual">Salario bruto</label>
           <div className="input-group">
             <input
               id="brutoAnual"
               type="number"
               min={0}
-              step={500}
-              value={state.brutoAnual}
+              step={brutoUnidad === 'mes' ? 100 : 500}
+              value={brutoUnidad === 'mes' ? parseFloat((state.brutoAnual / 12).toFixed(2)) : state.brutoAnual}
               onFocus={e => e.target.select()}
-              onChange={e => setState(prev => ({ ...prev, brutoAnual: Number(e.target.value) }))}
+              onChange={e => setState(prev => ({
+                ...prev,
+                brutoAnual: brutoUnidad === 'mes' ? Math.round(Number(e.target.value) * 12) : Number(e.target.value),
+              }))}
             />
-            <span className="suffix">€/año</span>
+            <button
+              type="button"
+              className="suffix suffix--toggle"
+              onClick={() => setBrutoUnidad(u => u === 'año' ? 'mes' : 'año')}
+              title="Cambiar unidad"
+            >
+              €/{brutoUnidad}
+            </button>
           </div>
         </div>
 
@@ -398,29 +413,40 @@ export function Ingresos() {
               {otrosIngresosList.length === 0 && (
                 <p className="gastos__empty">Sin otros ingresos añadidos</p>
               )}
-              {otrosIngresosList.map(ingreso => (
-                <div key={ingreso.id} className="gasto-row">
-                  <input
-                    type="text"
-                    className="gasto-desc"
-                    placeholder="Descripción"
-                    value={ingreso.descripcion}
-                    onChange={e => updateOtroIngreso(ingreso.id, 'descripcion', e.target.value)}
-                  />
-                  <div className="input-group gasto-value">
+              {otrosIngresosList.map(ingreso => {
+                const unit = otrosIngresosUnidades[ingreso.id] ?? 'mes'
+                const displayValue = unit === 'año' ? parseFloat((ingreso.valor * 12).toFixed(2)) : ingreso.valor
+                return (
+                  <div key={ingreso.id} className="gasto-row">
                     <input
-                      type="number"
-                      min={0}
-                      step={50}
-                      value={ingreso.valor}
-                      onFocus={e => e.target.select()}
-                      onChange={e => updateOtroIngreso(ingreso.id, 'valor', Number(e.target.value))}
+                      type="text"
+                      className="gasto-desc"
+                      placeholder="Descripción"
+                      value={ingreso.descripcion}
+                      onChange={e => updateOtroIngreso(ingreso.id, 'descripcion', e.target.value)}
                     />
-                    <span className="suffix">€/mes</span>
+                    <div className="input-group gasto-value">
+                      <input
+                        type="number"
+                        min={0}
+                        step={unit === 'año' ? 100 : 10}
+                        value={displayValue}
+                        onFocus={e => e.target.select()}
+                        onChange={e => updateOtroIngreso(ingreso.id, 'valor', unit === 'año' ? Number(e.target.value) / 12 : Number(e.target.value))}
+                      />
+                      <button
+                        type="button"
+                        className="suffix suffix--toggle"
+                        onClick={() => toggleOtroIngresoUnidad(ingreso.id)}
+                        title="Cambiar unidad"
+                      >
+                        €/{unit}
+                      </button>
+                    </div>
+                    <button type="button" className="btn-remove" onClick={() => removeOtroIngreso(ingreso.id)}>✕</button>
                   </div>
-                  <button type="button" className="btn-remove" onClick={() => removeOtroIngreso(ingreso.id)}>✕</button>
-                </div>
-              ))}
+                )
+              })}
               <button type="button" className="btn-add gastos__add" onClick={addOtroIngreso}>+ Añadir ingreso</button>
             </div>
           )}

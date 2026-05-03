@@ -109,6 +109,19 @@
   box-sizing: border-box;
 }
 
+.input-group .suffix--toggle {
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-color: var(--accent-border);
+  }
+}
+
 input[type="number"],
 input[type="date"] {
   font-family: var(--mono);
