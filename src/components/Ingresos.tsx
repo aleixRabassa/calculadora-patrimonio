@@ -51,11 +51,10 @@ const DEFAULT_CUOTA_HIPOTECARIA = Math.round(calcularHipoteca(200_000, 40_000, 3
 const DEFAULT_STATE: IngresosState = {
   brutoAnual: 40_000,
   gastos: [
-    { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA },
-    { id: 'gasto-gastos', descripcion: 'Gastos', valor: 250 },
+    { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA }
   ],
   gastosExtraordinarios: [],
-  ahorroInicial: 0,
+  ahorroInicial: 40_000,
   country: 'spain',
   subidas: [],
 }
