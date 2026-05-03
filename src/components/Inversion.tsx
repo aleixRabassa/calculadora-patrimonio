@@ -96,7 +96,7 @@ function buildDefaultInversionState(): InversionState {
       },
       {
         id: 'default-hipoteca',
-        descripcion: 'Deudas',
+        descripcion: 'Hipoteca (deuda)',
         capitalInicial: -financedAmount,
         aportacionMensual: hipotecaMensual,
         rentabilidadAnual: hipotecaState.interestRate,
