@@ -405,6 +405,10 @@ export function Ingresos() {
                 className={`country-btn${(state.country ?? 'spain') === 'spain' ? ' country-btn--active' : ''}`}
                 onClick={() => setState(prev => ({ ...prev, country: 'spain' }))}
               >
+                <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true" style={{ display: 'block', borderRadius: '2px' }}>
+                  <rect width="20" height="14" fill="#c60b1e"/>
+                  <rect y="3.5" width="20" height="7" fill="#ffc400"/>
+                </svg>
                 España
               </button>
               <button
@@ -412,6 +416,11 @@ export function Ingresos() {
                 className={`country-btn${(state.country ?? 'spain') === 'andorra' ? ' country-btn--active' : ''}`}
                 onClick={() => setState(prev => ({ ...prev, country: 'andorra' }))}
               >
+                <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true" style={{ display: 'block', borderRadius: '2px' }}>
+                  <rect width="7" height="14" fill="#003DA5"/>
+                  <rect x="7" width="6" height="14" fill="#FEDF00"/>
+                  <rect x="13" width="7" height="14" fill="#D01F3C"/>
+                </svg>
                 Andorra
               </button>
             </div>
