@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Area, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { calcularHipoteca, generateInvestmentSchedule } from '../utils/calculations'
+import type { Country } from '../utils/calculations'
+import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularSalarioNeto, generateInvestmentSchedule } from '../utils/calculations'
 import './Inversion.css'
 import './Ingresos.css'
 
@@ -128,6 +129,18 @@ export function Inversion() {
     propertyPrice: 200_000, parkingPrice: 0, financingPct: 100, interestRate: 3, termYears: 25,
   })
 
+  // Read ingresos state to enable "add available savings as investment" feature
+  interface MinimalIngresosState {
+    brutoAnual: number
+    gastos?: Array<{ valor: number }>
+    gastosExtraordinarios?: Array<{ importe: number }>
+    ahorroInicial?: number
+    country?: Country
+  }
+  const [ingresosState] = useLocalStorage<MinimalIngresosState>('calc.ingresos', {
+    brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain',
+  })
+
   useEffect(() => {
     if (!openColorId) return
     const handler = (e: MouseEvent) => {
@@ -221,7 +234,7 @@ export function Inversion() {
         ...(prev.inversiones ?? []),
         {
           id: crypto.randomUUID(),
-          descripcion: 'Piso (activo)',
+          descripcion: 'Inmueble (activo)',
           capitalInicial: totalPrice,
           aportacionMensual: 0,
           rentabilidadAnual: 2,
@@ -234,6 +247,41 @@ export function Inversion() {
           aportacionMensual: hipoteca.capital / (hipotecaState.termYears * 12),
           rentabilidadAnual: hipotecaState.interestRate,
           color: colorHipoteca,
+        },
+      ],
+    }))
+  }
+
+  const addAhorroAsInversion = () => {
+    const totalGastosExtraordinarios = (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
+    const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
+
+    const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
+    const netoMensual = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain').netoMensual
+    const ahorroMensual = netoMensual - totalGastos
+
+    const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
+    const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
+    const additionalEntry = totalPrice - financedAmount
+    const { cuotaMensual } = calcularHipoteca(totalPrice, financedAmount, hipotecaState.interestRate, hipotecaState.termYears)
+
+    const capitalInicial = ahorroInicialEfectivo - additionalEntry
+    const aportacionMensual = ahorroMensual - cuotaMensual
+
+    const usedColors = new Set(inversiones.map(i => i.color))
+    const color = PALETTE_COLORS.find(c => !usedColors.has(c)) ?? PALETTE_COLORS[inversiones.length % PALETTE_COLORS.length]
+
+    setState(prev => ({
+      ...prev,
+      inversiones: [
+        ...(prev.inversiones ?? []),
+        {
+          id: crypto.randomUUID(),
+          descripcion: 'Ahorro disponible',
+          capitalInicial,
+          aportacionMensual,
+          rentabilidadAnual: 0,
+          color,
         },
       ],
     }))
@@ -495,7 +543,8 @@ export function Inversion() {
             <tr>
               <td colSpan={7} className="inversion-table__add-row">
                 <button type="button" className="btn-add" onClick={addInversion}>+ Añadir inversión</button>
-                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion}>🏠 Añadir piso + hipoteca</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion}>🏠 Añadir inmueble + hipoteca</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion}>💰 Añadir ahorro disponible</button>
               </td>
             </tr>
           </tfoot>
