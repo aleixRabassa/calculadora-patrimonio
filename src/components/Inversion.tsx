@@ -585,7 +585,6 @@ export function Inversion() {
                     <div className="input-group">
                       <input
                         type="number"
-                        min={0}
                         step={1000}
                         value={inv.capitalInicial}
                         onFocus={e => e.target.select()}
@@ -598,7 +597,6 @@ export function Inversion() {
                     <div className="input-group">
                       <input
                         type="number"
-                        min={0}
                         step={50}
                         value={Math.round(inv.aportacionMensual)}
                         onFocus={e => e.target.select()}
@@ -611,7 +609,6 @@ export function Inversion() {
                     <div className="input-group">
                       <input
                         type="number"
-                        min={0}
                         step={0.5}
                         value={inv.rentabilidadAnual}
                         onFocus={e => e.target.select()}
