@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Area, ComposedChart, Line, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { calcularSalarioNeto, calcularAhorroInicialEfectivo } from '../utils/calculations'
+import { calcularSalarioNeto, calcularAhorroInicialEfectivo, calcularHipoteca } from '../utils/calculations'
 import type { Country } from '../utils/calculations'
 import './Ingresos.css'
 
@@ -45,24 +45,19 @@ function mesesHastaEnero(): number {
   return (12 - today.getMonth()) % 12 || 12
 }
 
+// Default monthly mortgage payment: 200k property, 80% financed, 3%, 30 years
+const DEFAULT_CUOTA_HIPOTECARIA = Math.round(calcularHipoteca(200_000, 40_000, 3, 30).cuotaMensual)
+
 const DEFAULT_STATE: IngresosState = {
-  brutoAnual: 43_000,
+  brutoAnual: 40_000,
   gastos: [
-    { id: 'gasto-hipoteca', descripcion: 'Entrada hipoteca', valor: 1_370 },
+    { id: 'gasto-hipoteca', descripcion: 'Cuota hipotecaria', valor: DEFAULT_CUOTA_HIPOTECARIA },
     { id: 'gasto-gastos', descripcion: 'Gastos', valor: 250 },
   ],
-  gastosExtraordinarios: [
-    { id: 'gasto-ext-itp', descripcion: 'Impostos pis', importe: 18_000 },
-  ],
-  ahorroInicial: 95_000,
+  gastosExtraordinarios: [],
+  ahorroInicial: 0,
   country: 'spain',
-  subidas: (() => {
-    const base = mesesHastaEnero()
-    return [
-      { id: 'subida-1', mes: base, nuevoBrutoAnual: 50_000 },
-      { id: 'subida-2', mes: base + 12, nuevoBrutoAnual: 55_000 },
-    ]
-  })(),
+  subidas: [],
 }
 
 const MAX_HORIZONTE_MESES = 240 // 20 años

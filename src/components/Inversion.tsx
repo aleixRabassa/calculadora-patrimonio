@@ -51,11 +51,11 @@ interface MinimalIngresosState {
 }
 
 const DEFAULT_HIPOTECA: MinimalHipotecaState = {
-  propertyPrice: 200_000, parkingPrice: 0, financingPct: 100, interestRate: 3, termYears: 25,
+  propertyPrice: 200_000, parkingPrice: 0, financingPct: 80, interestRate: 3, termYears: 30,
 }
 
 const DEFAULT_INGRESOS: MinimalIngresosState = {
-  brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain',
+  brutoAnual: 40_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain',
 }
 
 function buildDefaultInversionState(): InversionState {

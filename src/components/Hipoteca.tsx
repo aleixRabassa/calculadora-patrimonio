@@ -39,10 +39,11 @@ interface HipotecaState {
 const DEFAULT_STATE: HipotecaState = {
   propertyPrice: 200_000,
   parkingPrice: 0,
-  financingPct: 100,
+  financingPct: 80,
   itpPct: 10,
-  termYears: 25,
+  termYears: 30,
   interestRate: 3,
+  annualContribution: 0,
   extraordinaryContributions: [],
   amortizationType: 'plazo',
 }
