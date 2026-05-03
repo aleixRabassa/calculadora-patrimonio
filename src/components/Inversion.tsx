@@ -105,8 +105,8 @@ function buildDefaultInversionState(): InversionState {
       {
         id: 'default-ahorro',
         descripcion: 'Ahorro disponible',
-        capitalInicial: ahorroInicialEfectivo - additionalEntry,
-        aportacionMensual: ahorroMensual - hipotecaMensual,
+        capitalInicial: 0,
+        aportacionMensual: 1352,
         rentabilidadAnual: 0,
         color: '#10b981',
       },
@@ -319,24 +319,28 @@ export function Inversion() {
     const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
     const additionalEntry = totalPrice - financedAmount
 
-    const totalOtherContributions = inversiones.reduce((s, inv) => s + inv.aportacionMensual, 0)
+    // Only sum contributions from non-savings rows
+    const nonSavingsRows = inversiones.filter(inv => inv.descripcion !== 'Ahorro disponible')
+    const totalOtherContributions = nonSavingsRows.reduce((s, inv) => s + inv.aportacionMensual, 0)
 
     const capitalInicial = ahorroInicialEfectivo - additionalEntry
     const aportacionMensual = ahorroMensual - totalOtherContributions
 
-    const usedColors = new Set(inversiones.map(i => i.color))
-    const color = PALETTE_COLORS.find(c => !usedColors.has(c)) ?? PALETTE_COLORS[inversiones.length % PALETTE_COLORS.length]
+    const existingAhorro = inversiones.find(inv => inv.descripcion === 'Ahorro disponible')
+    const color = existingAhorro?.color
+      ?? PALETTE_COLORS.find(c => !new Set(inversiones.map(i => i.color)).has(c))
+      ?? PALETTE_COLORS[inversiones.length % PALETTE_COLORS.length]
 
     setState(prev => ({
       ...prev,
       inversiones: [
-        ...(prev.inversiones ?? []),
+        ...(prev.inversiones ?? []).filter(inv => inv.descripcion !== 'Ahorro disponible'),
         {
-          id: crypto.randomUUID(),
+          id: existingAhorro?.id ?? crypto.randomUUID(),
           descripcion: 'Ahorro disponible',
           capitalInicial,
           aportacionMensual,
-          rentabilidadAnual: 0,
+          rentabilidadAnual: existingAhorro?.rentabilidadAnual ?? 0,
           color,
         },
       ],
@@ -521,9 +525,8 @@ export function Inversion() {
                     Ahorro mensual disponible (neto − gastos) menos el resto de aportaciones.<br />
                     <br />
                     <strong>Deudas</strong><br />
-                    Solo la amortización de capital:<br />
-                    <em>capital financiado ÷ (años × 12)</em><br />
-                    No incluye intereses.
+                    Solo la amortización media de capital.<br />
+                    No incluye la parte de intereses de la cuota.
                   </span>
                 </span>
               </th>
