@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Tabs } from './components/Tabs'
 import { Ingresos } from './components/Ingresos'
 import { Hipoteca } from './components/Hipoteca'
@@ -10,7 +10,7 @@ import './App.css'
 const TAB_LABELS = ['Ingresos', 'Hipoteca', 'Inversión', 'Patrimonio']
 
 function App() {
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useLocalStorage('app.activeTab', 0)
   const [isDark, setIsDark] = useLocalStorage('app.theme.dark', false)
 
   useEffect(() => {
