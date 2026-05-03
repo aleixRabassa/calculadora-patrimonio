@@ -37,6 +37,19 @@ interface LegacyIngresosState {
   gastosFijos?: number
 }
 
+interface MinimalHipotecaState {
+  propertyPrice: number
+  parkingPrice: number
+  financingPct: number
+  interestRate: number
+  termYears: number
+  additionalEntry: number
+}
+
+const DEFAULT_HIPOTECA: MinimalHipotecaState = {
+  propertyPrice: 200_000, parkingPrice: 0, financingPct: 80, interestRate: 3, termYears: 30, additionalEntry: 0,
+}
+
 interface IngresosState {
   brutoAnual: number
   otrosIngresos: OtroIngreso[]
@@ -131,6 +144,7 @@ function xAxisInterval(years: number): number {
 
 export function Ingresos() {
   const [state, setState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_STATE)
+  const [hipotecaState] = useLocalStorage<MinimalHipotecaState>('calc.hipoteca', DEFAULT_HIPOTECA)
   const [horizonYears, setHorizonYears] = useState<number>(5)
   const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '2027-11-01')
   const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', 100_000)
@@ -233,6 +247,22 @@ export function Ingresos() {
     setState(prev => ({
       ...prev,
       gastos: [...(prev.gastos ?? []), { id: crypto.randomUUID(), descripcion: '', valor: 0 }],
+    }))
+  }
+
+  const addHipotecaAsGasto = () => {
+    const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
+    const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
+    const downPayment = totalPrice - financedAmount
+    const entradaAdicional = hipotecaState.additionalEntry ?? 0
+    const hipoteca = calcularHipoteca(totalPrice, downPayment + entradaAdicional, hipotecaState.interestRate, hipotecaState.termYears)
+    setState(prev => ({
+      ...prev,
+      gastos: [...(prev.gastos ?? []), {
+        id: crypto.randomUUID(),
+        descripcion: 'Cuota hipotecaria',
+        valor: Math.round(hipoteca.cuotaMensual),
+      }],
     }))
   }
 
@@ -479,7 +509,10 @@ export function Ingresos() {
                   <button type="button" className="btn-remove" onClick={() => removeGasto(gasto.id)}>✕</button>
                 </div>
               ))}
-              <button type="button" className="btn-add gastos__add" onClick={addGasto}>+ Añadir gasto</button>
+              <div className="gastos__add-row">
+                <button type="button" className="btn-add" onClick={addGasto}>+ Añadir gasto</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsGasto}>🏠 Añadir hipoteca</button>
+              </div>
             </div>
           )}
         </div>

@@ -307,6 +307,14 @@ input[type="date"] {
   margin-top: 4px;
 }
 
+.gastos__add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
 /* Subidas salariales */
 .subidas {
   margin-top: 24px;
@@ -345,6 +353,18 @@ input[type="date"] {
 
   &:hover {
     background: rgba(170, 59, 255, 0.18);
+  }
+}
+
+.gastos__add-row .btn-add--secondary {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+
+  &:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
   }
 }
 
