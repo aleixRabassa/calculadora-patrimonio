@@ -311,11 +311,8 @@ export function Inversion() {
                     const m = v / 1_000_000
                     return `${m.toFixed(1).replace('.0', '').replace('.', ',')}M€`
                   }
-                  if (v >= 1000) {
-                    const k = v / 1000
-                    return `${Math.round(k)}k€`
-                  }
-                  return `${Math.round(v)}€`
+                  if (v === 0) return '0€'
+                  return `${Math.round(v / 1000)}k€`
                 }}
                 tick={{ fontSize: 12 }}
                 width={55}
