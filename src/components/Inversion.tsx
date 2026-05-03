@@ -96,7 +96,7 @@ function buildDefaultInversionState(): InversionState {
       },
       {
         id: 'default-hipoteca',
-        descripcion: 'Hipoteca (deuda)',
+        descripcion: 'Deudas',
         capitalInicial: -financedAmount,
         aportacionMensual: hipotecaMensual,
         rentabilidadAnual: hipotecaState.interestRate,
@@ -297,7 +297,7 @@ export function Inversion() {
         },
         {
           id: crypto.randomUUID(),
-          descripcion: 'Hipoteca (deuda)',
+          descripcion: 'Deudas',
           capitalInicial: -financedAmount,
           aportacionMensual: hipoteca.capital / (hipotecaState.termYears * 12),
           rentabilidadAnual: hipotecaState.interestRate,
@@ -351,7 +351,16 @@ export function Inversion() {
 
           <div className="inflation-control">
             <div className="inflation-control__header">
-              <span className="inflation-control__label">Inflación anual</span>
+              <span className="inflation-control__label">
+                Inflación anual
+                <span className="col-info" tabIndex={0}>
+                  ?
+                  <span className="col-info__tooltip">
+                    Reduce el valor real del patrimonio con el tiempo.<br />
+                    Para ignorar el efecto de la inflación, ponlo a 0%.
+                  </span>
+                </span>
+              </span>
               <span className="inflation-control__value">{fmtPct(inflationPct)}%</span>
             </div>
             <input
@@ -491,24 +500,45 @@ export function Inversion() {
             <tr>
               <th className="inversion-table__col--color" />
               <th className="inversion-table__col--desc">Descripción</th>
-              <th className="inversion-table__col--num">Capital inicial</th>
+              <th className="inversion-table__col--num">
+                Capital inicial
+                <span className="col-info" tabIndex={0}>
+                  ?
+                  <span className="col-info__tooltip">
+                    Valor del activo en el momento inicial.<br />
+                    <br />
+                    <strong>Deudas</strong><br />
+                    El valor debe ser negativo, ya que representa un pasivo en el patrimonio.
+                  </span>
+                </span>
+              </th>
               <th className="inversion-table__col--num">
                 Aport. mensual
                 <span className="col-info" tabIndex={0}>
                   ?
                   <span className="col-info__tooltip">
                     <strong>Ahorro disponible</strong><br />
-                    Capital inicial: ahorro disponible menos la entrada de la hipoteca.<br />
-                    Aportación: ahorro mensual (neto − gastos) menos la suma de las aportaciones mensuales del resto de filas de la tabla. Si la hipoteca ya está en la lista, su cuota se descuenta automáticamente.<br />
+                    Ahorro mensual disponible (neto − gastos) menos el resto de aportaciones.<br />
                     <br />
-                    <strong>Hipoteca (deuda)</strong><br />
+                    <strong>Deudas</strong><br />
                     Solo la amortización de capital:<br />
                     <em>capital financiado ÷ (años × 12)</em><br />
                     No incluye intereses.
                   </span>
                 </span>
               </th>
-              <th className="inversion-table__col--num">Rentabilidad anual</th>
+              <th className="inversion-table__col--num">
+                Rentabilidad anual
+                <span className="col-info" tabIndex={0}>
+                  ?
+                  <span className="col-info__tooltip">
+                    Rentabilidad esperada anual del activo.<br />
+                    <br />
+                    <strong>Deudas</strong><br />
+                    Equivale al tipo de interés del préstamo, este debe ser positivo.
+                  </span>
+                </span>
+              </th>
               <th className="inversion-table__col--num">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</th>
               <th className="inversion-table__col--action" />
             </tr>
