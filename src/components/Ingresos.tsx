@@ -462,7 +462,7 @@ export function Ingresos() {
 
         {totalGastosExtraordinarios > 0 && (
           <div className="field field--computed">
-            <label>Ahorro actual efectivo</label>
+            <label>Ahorro actual disponible</label>
             <div className={`computed-value ${ahorroInicialEfectivo < 0 ? 'computed-value--negative' : ''}`}>
               {fmt(ahorroInicialEfectivo)} €
               <span className="detail">Ahorro actual {fmt(state.ahorroInicial)} € − Gastos extraordinarios {fmt(totalGastosExtraordinarios)} €</span>

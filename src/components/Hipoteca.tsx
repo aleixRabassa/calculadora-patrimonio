@@ -39,7 +39,7 @@ interface HipotecaState {
 const DEFAULT_STATE: HipotecaState = {
   propertyPrice: 200_000,
   parkingPrice: 0,
-  financingPct: 80,
+  financingPct: 100,
   itpPct: 10,
   termYears: 25,
   interestRate: 3,
@@ -476,7 +476,7 @@ export function Hipoteca() {
                 }
               }}
             >
-              Ahorro actual efectivo: {fmt(Math.max(0, ahorroInicialEfectivo))} €
+              Ahorro actual disponible: {fmt(Math.max(0, ahorroInicialEfectivo))} €
             </button>
           </div>
           <div className="input-group">
