@@ -517,7 +517,7 @@ export function Inversion() {
                 <span className="col-info" tabIndex={0}>
                   ?
                   <span className="col-info__tooltip">
-                    <strong>Ahorro disponible</strong><br />
+                    <strong>Ahorro</strong><br />
                     Ahorro mensual disponible (neto − gastos) menos el resto de aportaciones.<br />
                     <br />
                     <strong>Deudas</strong><br />
@@ -634,8 +634,8 @@ export function Inversion() {
             <tr>
               <td colSpan={7} className="inversion-table__add-row">
                 <button type="button" className="btn-add" onClick={addInversion}>+ Añadir inversión</button>
-                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion}>🏠 Añadir inmueble + hipoteca</button>
-                <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion}>💰 Añadir ahorro disponible</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion}>🏠 Añadir hipotecas</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion}>💰 Añadir ahorro</button>
               </td>
             </tr>
           </tfoot>

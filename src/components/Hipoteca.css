@@ -359,6 +359,11 @@
 
 .schedule-table__outstanding {
   font-family: var(--mono) !important;
+  padding-right: 24px !important;
+}
+
+.schedule-table thead th:last-child {
+  padding-right: 24px !important;
 }
 
 .schedule-table td:nth-child(2) {
