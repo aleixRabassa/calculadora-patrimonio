@@ -7,6 +7,7 @@ interface TabsProps {
   onChange: (index: number) => void
   isDark: boolean
   onToggleTheme: () => void
+  onResetDefaults: () => void
   onExportJson: () => void
   onImportJson: (data: Record<string, unknown>) => void
 }
@@ -44,7 +45,7 @@ function IconGear() {
   )
 }
 
-export function Tabs({ tabs, active, onChange, isDark, onToggleTheme, onExportJson, onImportJson }: TabsProps) {
+export function Tabs({ tabs, active, onChange, isDark, onToggleTheme, onResetDefaults, onExportJson, onImportJson }: TabsProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -120,7 +121,12 @@ export function Tabs({ tabs, active, onChange, isDark, onToggleTheme, onExportJs
 
           {menuOpen && (
             <div className="settings-menu" role="menu">
-              <button type="button" className="settings-item" role="menuitem" onClick={() => setMenuOpen(false)}>
+              <button
+                type="button"
+                className="settings-item settings-item--danger"
+                role="menuitem"
+                onClick={() => { onResetDefaults(); setMenuOpen(false) }}
+              >
                 Restaurar valores por defecto
               </button>
               <button type="button" className="settings-item" role="menuitem" onClick={() => setMenuOpen(false)}>

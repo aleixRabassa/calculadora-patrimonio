@@ -356,7 +356,7 @@ export function Inversion() {
                 <span className="col-info" tabIndex={0}>
                   ?
                   <span className="col-info__tooltip">
-                    Reduce el valor real del patrimonio con el tiempo.<br />
+                    Reduce el valor real del patrimonio con el tiempo.<br /><br />
                     Para ignorar el efecto de la inflación, ponlo a 0%.
                   </span>
                 </span>

@@ -19,6 +19,8 @@ const STORAGE_KEYS = [
   'calc.inversion',
 ]
 
+const CALC_KEYS = STORAGE_KEYS.filter(k => k.startsWith('calc.'))
+
 function App() {
   const [activeTab, setActiveTab] = useLocalStorage('app.activeTab', 0)
   const [isDark, setIsDark] = useLocalStorage('app.theme.dark', false)
@@ -27,6 +29,13 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
   }, [isDark])
+
+  function handleResetDefaults() {
+    if (!window.confirm('¿Seguro que quieres restaurar todos los valores por defecto? Se perderán todos los datos introducidos.')) return
+    CALC_KEYS.forEach(key => localStorage.removeItem(key))
+    localStorage.removeItem('app.activeTab')
+    window.location.reload()
+  }
 
   function handleExportJson() {
     const data: Record<string, unknown> = {}
@@ -65,6 +74,7 @@ function App() {
         onChange={setActiveTab}
         isDark={isDark}
         onToggleTheme={() => setIsDark(v => !v)}
+        onResetDefaults={handleResetDefaults}
         onExportJson={handleExportJson}
         onImportJson={handleImportJson}
       />
