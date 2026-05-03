@@ -246,7 +246,7 @@ export function Patrimonio() {
           <span className="hero-card__detail">Activos − Pasivos</span>
         </div>
         <div className="hero-card">
-          <span className="hero-card__label">Salario neto mensual</span>
+          <span className="hero-card__label">Salario neto mensual en {ingresosState.country === 'andorra' ? 'Andorra' : 'España'}</span>
           <span className="hero-card__value hero-card__value--accent">{fmt(neto.netoMensual)} €</span>
           <span className="hero-card__detail">IRPF efectivo: {fmtPct(neto.tipoEfectivoIRPF)}%</span>
         </div>

@@ -235,7 +235,6 @@
   user-select: none;
 }
 
-/* Custom chart tooltip */
 .pie-tooltip {
   background: var(--bg);
   border: 1px solid var(--border);
