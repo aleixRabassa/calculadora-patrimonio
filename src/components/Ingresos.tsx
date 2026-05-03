@@ -415,7 +415,7 @@ export function Ingresos() {
             <div className="gastos__title">
               <h3>Otros ingresos brutos</h3>
               {totalOtrosIngresosMensual > 0 && (
-                <span className="gastos__total">{fmt(totalOtrosIngresosMensual)} €/mes</span>
+                <span className="gastos__total">{fmt(totalOtrosIngresosMensual * 12)} €/año</span>
               )}
             </div>
             <span className={`gastos__toggle${otrosIngresosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
