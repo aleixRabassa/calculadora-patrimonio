@@ -442,8 +442,9 @@ export function Inversion() {
                 <span className="col-info" tabIndex={0}>
                   ?
                   <span className="col-info__tooltip">
-                    <strong>Activos</strong><br />
-                    Aportación mensual libre definida por el usuario.<br />
+                    <strong>Ahorro disponible</strong><br />
+                    Ahorro actual disponible menos la entrada de la hipoteca.<br />
+                    Aportación: ahorro mensual (neto − gastos) menos la cuota hipotecaria.<br />
                     <br />
                     <strong>Deudas (hipoteca)</strong><br />
                     Solo la amortización de capital:<br />
