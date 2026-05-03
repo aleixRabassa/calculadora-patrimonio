@@ -1,14 +1,70 @@
-import { useMemo } from 'react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { useMemo, useState } from 'react'
+import { Area, Cell, ComposedChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { calcularHipoteca, calcularSalarioNeto, calcularAhorroInicialEfectivo } from '../utils/calculations'
+import { calcularHipoteca, calcularSalarioNeto, calcularAhorroInicialEfectivo, generateInvestmentSchedule } from '../utils/calculations'
 import type { Country } from '../utils/calculations'
 import './Patrimonio.css'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
-// --- Minimal state shapes to read from localStorage ---
+const HORIZON_OPTIONS = [1, 2, 5, 10, 20, 30] as const
+
+function formatFutureMonth(monthsFromNow: number): string {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + monthsFromNow)
+  const str = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function xAxisInterval(years: number): number {
+  if (years <= 1) return 2
+  if (years <= 2) return 5
+  if (years <= 5) return 11
+  if (years <= 10) return 23
+  return 47
+}
+
+interface NetWorthChartPoint {
+  month: number
+  netWorth: number
+  contributed: number
+}
+
+interface NetWorthTooltipProps {
+  active?: boolean
+  payload?: ReadonlyArray<{ dataKey?: string; value?: unknown }>
+  label?: number
+}
+
+function NetWorthTooltip({ active, payload, label }: NetWorthTooltipProps) {
+  if (!active || !payload?.length || label == null) return null
+  const netWorth = payload.find(p => p.dataKey === 'netWorth')?.value
+  const contributed = payload.find(p => p.dataKey === 'contributed')?.value
+  if (typeof netWorth !== 'number') return null
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip__date">{formatFutureMonth(label)}</div>
+      <div className="chart-tooltip__row">
+        <span className="chart-tooltip__dot" style={{ background: '#10b981' }} />
+        <span className="chart-tooltip__label">Patrimonio neto</span>
+        <span className="chart-tooltip__value">{fmt(netWorth)} €</span>
+      </div>
+      {typeof contributed === 'number' && (
+        <div className="chart-tooltip__row">
+          <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
+          <span className="chart-tooltip__label">Total aportado</span>
+          <span className="chart-tooltip__value">
+            {fmt(contributed)} € · {netWorth > contributed ? '+' : ''}{fmtPct(((netWorth - contributed) / Math.max(Math.abs(contributed), 1)) * 100)}%
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 
 interface GastoMensual {
   id: string
@@ -104,6 +160,7 @@ export function Patrimonio() {
   const [ingresosState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_INGRESOS)
   const [hipotecaState] = useLocalStorage<HipotecaState>('calc.hipoteca', DEFAULT_HIPOTECA)
   const [inversionState] = useLocalStorage<InversionState>('calc.inversion', DEFAULT_INVERSION)
+  const [horizonYears, setHorizonYears] = useState<number>(10)
 
   // --- Derived values ---
 
@@ -234,6 +291,34 @@ export function Patrimonio() {
 
   const adjustedPatrimonio = adjustedActivos - adjustedPasivos
 
+  const inflationPct = inversionState.inflationPct ?? 2.5
+  const months = horizonYears * 12
+
+  const netWorthChartData = useMemo<NetWorthChartPoint[]>(() => {
+    if (inversiones.length === 0) return []
+    const schedules = inversiones.map(inv =>
+      generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, months, inflationPct)
+    )
+    const data: NetWorthChartPoint[] = []
+    for (let m = 0; m <= months; m++) {
+      let netWorth = 0
+      let contributed = 0
+      for (const schedule of schedules) {
+        const pt = schedule[m]
+        if (pt) {
+          netWorth += pt.value
+          contributed += pt.contributed
+        }
+      }
+      data.push({ month: m, netWorth, contributed })
+    }
+    return data
+  }, [inversiones, months, inflationPct])
+
+  const lastNetWorthPoint = netWorthChartData[netWorthChartData.length - 1]
+  const projectedNetWorth = lastNetWorthPoint?.netWorth ?? 0
+  const totalContributedAtHorizon = lastNetWorthPoint?.contributed ?? 0
+
   return (
     <section className="patrimonio">
       {/* Hero KPIs */}
@@ -311,7 +396,7 @@ export function Patrimonio() {
 
         {/* Mortgage status */}
         <div className="chart-panel">
-          <h3 className="chart-panel__title">Estado de la hipoteca</h3>
+          <h3 className="chart-panel__title">Estado de las hipotecas</h3>
           {mortgageDistribution.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={200}>
@@ -396,6 +481,103 @@ export function Patrimonio() {
             <p className="patrimonio__empty">Añade inversiones en la pestaña Inversión</p>
           )}
         </div>
+      </div>
+
+      {/* Net worth evolution chart */}
+      <div className="patrimonio__chart-section">
+        <div className="charts__header">
+          <div className="charts__header-left">
+            <h3>Evolución del patrimonio neto a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</h3>
+            {netWorthChartData.length > 0 && (
+              <div className="patrimonio__chart-kpis">
+                <span className={`patrimonio__chart-kpi ${projectedNetWorth >= 0 ? 'patrimonio__chart-kpi--pos' : 'patrimonio__chart-kpi--neg'}`}>
+                  {fmt(projectedNetWorth)} €
+                </span>
+                {totalContributedAtHorizon !== 0 && (
+                  <span className="patrimonio__chart-kpi--muted">
+                    {projectedNetWorth >= totalContributedAtHorizon ? '+' : ''}{fmtPct(((projectedNetWorth - totalContributedAtHorizon) / Math.max(Math.abs(totalContributedAtHorizon), 1)) * 100)}% del capital aportado
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="horizon-selector">
+            {HORIZON_OPTIONS.map(y => (
+              <button
+                key={y}
+                type="button"
+                className={`horizon-btn${horizonYears === y ? ' horizon-btn--active' : ''}`}
+                onClick={() => setHorizonYears(y)}
+              >
+                {y}a
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {netWorthChartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={320}>
+            <ComposedChart data={netWorthChartData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
+              <XAxis
+                dataKey="month"
+                tickFormatter={m => {
+                  if (horizonYears <= 2) {
+                    const d = new Date()
+                    d.setDate(1)
+                    d.setMonth(d.getMonth() + m)
+                    const raw = d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')
+                    const month = raw.charAt(0).toUpperCase() + raw.slice(1)
+                    const year = String(d.getFullYear()).slice(2)
+                    return `${month} ${year}`
+                  }
+                  const d2 = new Date()
+                  d2.setDate(1)
+                  d2.setMonth(d2.getMonth() + m)
+                  return String(d2.getFullYear())
+                }}
+                interval={xAxisInterval(horizonYears)}
+                tick={{ fontSize: 12, dy: 5 }}
+              />
+              <YAxis
+                tickFormatter={v => {
+                  if (v >= 1_000_000) {
+                    const m = v / 1_000_000
+                    return `${m.toFixed(1).replace('.0', '').replace('.', ',')}M€`
+                  }
+                  if (v <= -1_000_000) {
+                    const m = v / 1_000_000
+                    return `${m.toFixed(1).replace('.0', '').replace('.', ',')}M€`
+                  }
+                  if (v === 0) return '0€'
+                  return `${Math.round(v / 1000)}k€`
+                }}
+                tick={{ fontSize: 12 }}
+                width={60}
+              />
+              <Tooltip content={props => <NetWorthTooltip {...(props as NetWorthTooltipProps)} />} />
+              <Area
+                type="monotone"
+                dataKey="netWorth"
+                fill="#10b98120"
+                stroke="#10b981"
+                strokeWidth={2.5}
+                name="netWorth"
+              />
+              <Area
+                type="monotone"
+                dataKey="contributed"
+                fill="none"
+                stroke="var(--text)"
+                strokeWidth={1.5}
+                strokeDasharray="5 3"
+                strokeOpacity={0.45}
+                name="contributed"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="patrimonio__empty">Añade activos y deudas en la pestaña Inversión para proyectar el patrimonio</p>
+        )}
       </div>
 
       {/* Detailed breakdown */}
