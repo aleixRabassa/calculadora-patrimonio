@@ -629,7 +629,7 @@ export function Ingresos() {
                   </div>
                 </div>
                 <div className="subida-field">
-                  <label>Nuevo bruto anual</label>
+                  <label>Nuevo salario bruto</label>
                   <div className="input-group">
                     <div className="subida-input-overlay subida-input-overlay--salary">
                       <input
