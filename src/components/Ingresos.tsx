@@ -82,8 +82,8 @@ const DEFAULT_STATE: IngresosState = {
   subidas: [],
 }
 
-const MAX_HORIZONTE_MESES = 240 // 20 años
-const HORIZON_OPTIONS = [1, 2, 5, 10, 20] as const
+const MAX_HORIZONTE_MESES = 360 // 30 años
+const HORIZON_OPTIONS = [1, 2, 5, 10, 20, 30] as const
 
 interface ChartPoint {
   mes: number
@@ -141,7 +141,8 @@ function xAxisInterval(years: number): number {
   if (years <= 2) return 5   // every 6 months
   if (years <= 5) return 11  // every year
   if (years <= 10) return 23 // every 2 years
-  return 47                  // every 4 years
+  if (years <= 20) return 47 // every 4 years
+  return 59                  // every 5 years
 }
 
 export function Ingresos() {
