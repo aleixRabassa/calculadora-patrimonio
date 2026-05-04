@@ -298,7 +298,7 @@
   color: #ef4444;
 
   &:hover {
-    background: #fef2f2;
+    background: rgba(239, 68, 68, 0.1);
     border-color: #ef4444;
   }
 

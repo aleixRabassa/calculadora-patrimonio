@@ -23,7 +23,8 @@ const CALC_KEYS = STORAGE_KEYS.filter(k => k.startsWith('calc.'))
 
 function App() {
   const [activeTab, setActiveTab] = useLocalStorage('app.activeTab', 0)
-  const [isDark, setIsDark] = useLocalStorage('app.theme.dark', false)
+  const systemDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const [isDark, setIsDark] = useLocalStorage('app.theme.dark', systemDark)
   const isImporting = useRef(false)
 
   useEffect(() => {

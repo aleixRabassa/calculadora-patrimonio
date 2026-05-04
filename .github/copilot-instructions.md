@@ -108,6 +108,42 @@ const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 - **Percentages**: use `fmtPct` (`.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })`) so decimals render with a comma (e.g. `18,3%`).
 - **Date strings**: when formatting dates with `toLocaleDateString('es-ES', ...)`, always capitalize the first character — Spanish locale returns lowercase month names (e.g. `"mayo de 2026"`), so apply `.charAt(0).toUpperCase() + str.slice(1)` to get `"Mayo de 2026"`.
 
-## Important Rules
+## Color Palettes
+
+The app supports two themes, toggled via `isDark` (stored in `localStorage` under `app.theme.dark`). The `data-theme` attribute (`"light"` | `"dark"`) is set on `<html>` synchronously by an inline script in `index.html` to prevent FOUC.
+
+### Light theme (Google-style) — `[data-theme="light"]`
+
+| Variable | Value | Usage |
+|---|---|---|
+| `--text` | `#5f6368` | Body / secondary text |
+| `--text-h` | `#202124` | Headings, primary text |
+| `--bg` | `#f8f9fa` | Page background |
+| `--border` | `#dadce0` | Borders, dividers |
+| `--code-bg` | `#ffffff` | Cards, panels |
+| `--accent` | `#1a73e8` | Google blue — interactive elements |
+| `--accent-bg` | `rgba(26,115,232,0.08)` | Accent tint backgrounds |
+| `--accent-border` | `rgba(26,115,232,0.4)` | Accent borders |
+| `--hover-bg` | `rgba(0,0,0,0.04)` | Row hovers, subtle interactive bg |
+| `--shadow` | Google-style subtle | Dropdowns, cards |
+
+### Dark theme (default app palette) — `[data-theme="dark"]`
+
+| Variable | Value | Usage |
+|---|---|---|
+| `--text` | `#9ca3af` | Body / secondary text |
+| `--text-h` | `#f3f4f6` | Headings, primary text |
+| `--bg` | `#16171d` | Page background |
+| `--border` | `#2e303a` | Borders, dividers |
+| `--code-bg` | `#1f2028` | Cards, panels |
+| `--accent` | `#c084fc` | Purple — interactive elements |
+| `--accent-bg` | `rgba(192,132,252,0.15)` | Accent tint backgrounds |
+| `--accent-border` | `rgba(192,132,252,0.5)` | Accent borders |
+| `--hover-bg` | `rgba(255,255,255,0.05)` | Row hovers, subtle interactive bg |
+| `--shadow` | Dark, deeper shadows | Dropdowns, cards |
+
+> **Rule**: never use hardcoded `rgba(255,255,255,...)` or `rgba(0,0,0,...)` for interactive states — always use `var(--hover-bg)`.
+
+
 
 - **NEVER make git commits**. Never use `git commit`, `git push`, or any other git commands that modify the repository. The user is responsible for all git operations.

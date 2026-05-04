@@ -258,7 +258,7 @@
   }
 
   &:hover:not(.segmented-control__option--active) {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover-bg);
   }
 }
 
@@ -299,7 +299,7 @@
   transition: background 0.15s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--hover-bg);
   }
 }
 
@@ -322,7 +322,7 @@
   white-space: nowrap;
 
   &:hover:not(.schedule-panel__amort-toggle--active) {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover-bg);
   }
 }
 
@@ -381,11 +381,11 @@
   }
 
   tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--hover-bg);
     transition: background 0.1s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--hover-bg);
     }
 
     &:last-child {
@@ -430,7 +430,7 @@
 }
 
 .schedule-table__year-summary {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--hover-bg);
   border-top: 1px solid var(--border) !important;
   border-bottom: 2px solid var(--border) !important;
 
