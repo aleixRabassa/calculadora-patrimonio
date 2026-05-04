@@ -6,9 +6,11 @@ import type { Country } from '../utils/calculations'
 import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularSalarioNeto, generateInvestmentSchedule } from '../utils/calculations'
 import './Inversion.css'
 import './Ingresos.css'
+import { fmtAxisTick } from '../utils/format'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
-const fmtValue = (n: number) => n > 1_000_000_000_000 ? '∞' : fmt(n)
+const fmtVal = (n: number) => n > 1_000_000_000_000 ? <span className="infinity-symbol">∞</span> : fmt(n)
+const fmtPctVal = (pct: number) => Math.abs(pct) > 1_000_000 ? <span className="infinity-symbol">∞</span> : fmtPct(pct)
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const truncate = (str: string, max = 15) => str.length > max ? `${str.slice(0, max)}…` : str
 
@@ -153,7 +155,7 @@ function InversionChartTooltip({ active, payload, label, inversiones }: ChartToo
           <div key={inv.id} className="chart-tooltip__row">
             <span className="chart-tooltip__dot" style={{ background: inv.color }} />
             <span className="chart-tooltip__label">{truncate(inv.descripcion || 'Sin nombre')}</span>
-            <span className="chart-tooltip__value">{fmt(val)} €</span>
+            <span className="chart-tooltip__value">{fmtVal(val)} €</span>
           </div>
         )
       })}
@@ -161,14 +163,14 @@ function InversionChartTooltip({ active, payload, label, inversiones }: ChartToo
         <div className="chart-tooltip__row" style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
           <span className="chart-tooltip__dot" style={{ background: 'var(--text-h)' }} />
           <span className="chart-tooltip__label"><strong>Total</strong></span>
-          <span className="chart-tooltip__value"><strong>{fmt(totalValue)} €</strong></span>
+          <span className="chart-tooltip__value"><strong>{fmtVal(totalValue)} €</strong></span>
         </div>
       )}
       {typeof totalContributed === 'number' && totalValue > 0 && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
           <span className="chart-tooltip__label">Total aportado</span>
-          <span className="chart-tooltip__value">{fmt(totalContributed)} € · +{fmtPct(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%</span>
+          <span className="chart-tooltip__value">{fmtVal(totalContributed)} € · +{fmtPct(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%</span>
         </div>
       )}
     </div>
@@ -433,25 +435,25 @@ export function Inversion() {
           <div className="inversion__summary">
             <div className="summary-card">
               <div className="summary-card__label">Capital invertido</div>
-              <div className="summary-card__value">{fmt(totalCapitalInicial)} €</div>
+              <div className="summary-card__value">{fmtVal(totalCapitalInicial)} €</div>
             </div>
             <div className="summary-card">
               <div className="summary-card__label">Aportación mensual</div>
-              <div className="summary-card__value">{fmt(totalAportacionMensual)} €/mes</div>
+              <div className="summary-card__value">{fmtVal(totalAportacionMensual)} €/mes</div>
             </div>
             <div className="summary-card">
               <div className="summary-card__label">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</div>
               <div className="summary-card__value summary-card__value--accent">
-                {fmtValue(totalFinalValue)} €
+                {fmtVal(totalFinalValue)} €
                 <div className="summary-card__detail">*inflación aplicada</div>
               </div>
             </div>
             <div className="summary-card">
               <div className="summary-card__label">Rentabilidad acumulada</div>
               <div className={`summary-card__value ${totalReturns >= 0 ? 'summary-card__value--pos' : 'summary-card__value--neg'}`}>
-                {totalReturns >= 0 ? '+' : ''}{fmt(totalReturns)} €
+                {totalReturns >= 0 ? '+' : ''}{fmtVal(totalReturns)} €
                 <div className={`summary-card__detail ${totalReturns >= 0 ? 'summary-card__detail--pos' : 'summary-card__detail--neg'}`}>
-                  {totalReturns >= 0 ? '+' : ''}{fmtPct(totalContributed > 0 ? (totalReturns / totalContributed) * 100 : 0)}% sobre aportado
+                  {totalReturns >= 0 ? '+' : ''}{fmtPctVal(totalContributed > 0 ? (totalReturns / totalContributed) * 100 : 0)}% sobre aportado
                 </div>
               </div>
             </div>
@@ -497,14 +499,7 @@ export function Inversion() {
                 tick={{ fontSize: 12, dy: 5 }}
               />
               <YAxis
-                tickFormatter={v => {
-                  if (v >= 1_000_000) {
-                    const m = v / 1_000_000
-                    return `${m.toFixed(1).replace('.0', '').replace('.', ',')}M€`
-                  }
-                  if (v === 0) return '0€'
-                  return `${Math.round(v / 1000)}k€`
-                }}
+                tickFormatter={fmtAxisTick}
                 tick={{ fontSize: 12 }}
                 width={55}
               />
@@ -673,7 +668,7 @@ export function Inversion() {
                     </div>
                   </td>
                   <td className="inversion-table__final-value">
-                    {fmtValue(finalValue)} €
+                    {fmtVal(finalValue)} €
                   </td>
                   <td>
                     <button type="button" className="btn-remove" onClick={() => removeInversion(inv.id)}>✕</button>

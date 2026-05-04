@@ -94,10 +94,18 @@ All monetary and numeric values visible to the user must use Spanish number form
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 ```
 
-- **Computed/display values**: always use `fmt(value)` — never raw `.toFixed(0)`.
+- **Computed/display values**: always use `fmtVal(value)` — never raw `fmt(value)` or `.toFixed(0)`. `fmtVal` returns a JSX `<span className="infinity-symbol">∞</span>` when the value exceeds 1 trillion (10¹²), otherwise delegates to `fmt`.
+- **Percentage display values**: always use `fmtPctVal(pct)`. Returns `<span className="infinity-symbol">∞</span>` when the absolute percentage exceeds 1 000 000%, otherwise delegates to `fmtPct`.
 - **Number inputs**: use `type="number"` as-is. Browsers do not reliably show thousands separators in number inputs; this is acceptable.
-- **Chart axes**: exempt — compact labels (e.g. `14k€`) are acceptable there.
-- **Percentages**: use `.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })` so decimals render with a comma (e.g. `18,3%`). Plain `.toFixed(1)` is only acceptable when the value is embedded in a non-locale-sensitive context.
+- **Chart axes**: use `fmtAxisTick` from `src/utils/format.ts` as the `tickFormatter` on every `<YAxis>`. Scale suffixes (all followed by `€`):
+  - `k` = thousands (10³)
+  - `M` = millions (10⁶)
+  - `B` = billions (10⁹)
+  - `kB` = thousands of billions (10¹²)
+  - `T` = trillions (10¹⁵)
+  - `kT` = thousands of trillions (10¹⁸)
+- **Infinity display**: values above 1 trillion (10¹²) render as `∞` via `.infinity-symbol` CSS class (font-size 1.4em). Apply `fmtVal` / `fmtPctVal` consistently — never raw `fmt` for user-facing monetary or percentage outputs.
+- **Percentages**: use `fmtPct` (`.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })`) so decimals render with a comma (e.g. `18,3%`).
 - **Date strings**: when formatting dates with `toLocaleDateString('es-ES', ...)`, always capitalize the first character — Spanish locale returns lowercase month names (e.g. `"mayo de 2026"`), so apply `.charAt(0).toUpperCase() + str.slice(1)` to get `"Mayo de 2026"`.
 
 ## Important Rules

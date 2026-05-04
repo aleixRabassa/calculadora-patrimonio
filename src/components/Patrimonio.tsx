@@ -4,9 +4,12 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularHipoteca, calcularSalarioNeto, calcularAhorroInicialEfectivo, generateInvestmentSchedule } from '../utils/calculations'
 import type { Country } from '../utils/calculations'
 import './Patrimonio.css'
+import { fmtAxisTick } from '../utils/format'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const fmtVal = (n: number) => n > 1_000_000_000_000 ? <span className="infinity-symbol">∞</span> : fmt(n)
+const fmtPctVal = (pct: number) => Math.abs(pct) > 1_000_000 ? <span className="infinity-symbol">∞</span> : fmtPct(pct)
 
 const HORIZON_OPTIONS = [1, 2, 5, 10, 20, 30] as const
 
@@ -49,14 +52,14 @@ function NetWorthTooltip({ active, payload, label }: NetWorthTooltipProps) {
       <div className="chart-tooltip__row">
         <span className="chart-tooltip__dot" style={{ background: '#10b981' }} />
         <span className="chart-tooltip__label">Patrimonio neto</span>
-        <span className="chart-tooltip__value">{fmt(netWorth)} €</span>
+        <span className="chart-tooltip__value">{fmtVal(netWorth)} €</span>
       </div>
       {typeof contributed === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
           <span className="chart-tooltip__label">Total aportado</span>
           <span className="chart-tooltip__value">
-            {fmt(contributed)} € · {netWorth > contributed ? '+' : ''}{fmtPct(((netWorth - contributed) / Math.max(Math.abs(contributed), 1)) * 100)}%
+            {fmtVal(contributed)} € · {netWorth > contributed ? '+' : ''}{fmtPct(((netWorth - contributed) / Math.max(Math.abs(contributed), 1)) * 100)}%
           </span>
         </div>
       )}
@@ -160,7 +163,7 @@ function PieTooltip({ active, payload }: PieTooltipProps) {
   return (
     <div className="pie-tooltip">
       <div className="pie-tooltip__label">{item.name}</div>
-      <div className="pie-tooltip__value">{fmt(item.value ?? 0)} €</div>
+      <div className="pie-tooltip__value">{fmtVal(item.value ?? 0)} €</div>
     </div>
   )
 }
@@ -354,19 +357,19 @@ export function Patrimonio() {
         <div className="hero-card">
           <span className="hero-card__label">Patrimonio neto</span>
           <span className={`hero-card__value ${adjustedPatrimonio >= 0 ? 'hero-card__value--pos' : 'hero-card__value--neg'}`}>
-            {fmt(adjustedPatrimonio)} €
+            {fmtVal(adjustedPatrimonio)} €
           </span>
           <span className="hero-card__detail">Activos − Pasivos</span>
         </div>
         <div className="hero-card">
           <span className="hero-card__label">Salario neto mensual en {ingresosState.country === 'andorra' ? 'Andorra' : 'España'}</span>
-          <span className="hero-card__value hero-card__value--accent">{fmt(neto.netoMensual)} €</span>
+          <span className="hero-card__value hero-card__value--accent">{fmtVal(neto.netoMensual)} €</span>
           <span className="hero-card__detail">IRPF efectivo: {fmtPct(neto.tipoEfectivoIRPF)}%</span>
         </div>
         <div className="hero-card">
           <span className="hero-card__label">Ahorro mensual en {ingresosState.country === 'andorra' ? 'Andorra' : 'España'}</span>
           <span className={`hero-card__value ${ahorroMensual >= 0 ? 'hero-card__value--pos' : 'hero-card__value--neg'}`}>
-            {fmt(ahorroMensual)} €/mes
+            {fmtVal(ahorroMensual)} €/mes
           </span>
           <span className="hero-card__detail">
             {neto.netoMensual > 0
@@ -410,7 +413,7 @@ export function Patrimonio() {
                     <div key={i} className="legend-item">
                       <span className="legend-dot" style={{ background: entry.color }} />
                       <span className="legend-label">{entry.name}</span>
-                      <span className="legend-value">{fmt(entry.value)} €</span>
+                      <span className="legend-value">{fmtVal(entry.value)} €</span>
                       <span className="legend-pct">{fmtPct((entry.value / total) * 100)}%</span>
                     </div>
                   )
@@ -454,7 +457,7 @@ export function Patrimonio() {
                     <div key={i} className="legend-item">
                       <span className="legend-dot" style={{ background: entry.color }} />
                       <span className="legend-label">{entry.name}</span>
-                      <span className="legend-value">{fmt(entry.value)} €</span>
+                      <span className="legend-value">{fmtVal(entry.value)} €</span>
                       <span className="legend-pct">{fmtPct((entry.value / total) * 100)}%</span>
                     </div>
                   )
@@ -498,7 +501,7 @@ export function Patrimonio() {
                     <div key={i} className="legend-item">
                       <span className="legend-dot" style={{ background: entry.color }} />
                       <span className="legend-label">{entry.name}</span>
-                      <span className="legend-value">{fmt(entry.value)} €</span>
+                      <span className="legend-value">{fmtVal(entry.value)} €</span>
                       <span className="legend-pct">{fmtPct((entry.value / total) * 100)}%</span>
                     </div>
                   )
@@ -519,11 +522,11 @@ export function Patrimonio() {
             {netWorthChartData.length > 0 && (
               <div className="patrimonio__chart-kpis">
                 <span className={`patrimonio__chart-kpi ${projectedNetWorth >= 0 ? 'patrimonio__chart-kpi--pos' : 'patrimonio__chart-kpi--neg'}`}>
-                  {fmt(projectedNetWorth)} €
+                  {fmtVal(projectedNetWorth)} €
                 </span>
                 {totalContributedAtHorizon !== 0 && (
                   <span className="patrimonio__chart-kpi--muted">
-                    {projectedNetWorth >= totalContributedAtHorizon ? '+' : ''}{fmtPct(((projectedNetWorth - totalContributedAtHorizon) / Math.max(Math.abs(totalContributedAtHorizon), 1)) * 100)}% del capital aportado
+                    {projectedNetWorth >= totalContributedAtHorizon ? '+' : ''}{fmtPctVal(((projectedNetWorth - totalContributedAtHorizon) / Math.max(Math.abs(totalContributedAtHorizon), 1)) * 100)}% del capital aportado
                   </span>
                 )}
               </div>
@@ -567,18 +570,7 @@ export function Patrimonio() {
                 tick={{ fontSize: 12, dy: 5 }}
               />
               <YAxis
-                tickFormatter={v => {
-                  if (v >= 1_000_000) {
-                    const m = v / 1_000_000
-                    return `${m.toFixed(1).replace('.0', '').replace('.', ',')}M€`
-                  }
-                  if (v <= -1_000_000) {
-                    const m = v / 1_000_000
-                    return `${m.toFixed(1).replace('.0', '').replace('.', ',')}M€`
-                  }
-                  if (v === 0) return '0€'
-                  return `${Math.round(v / 1000)}k€`
-                }}
+                tickFormatter={fmtAxisTick}
                 tick={{ fontSize: 12 }}
                 width={60}
               />
@@ -616,24 +608,24 @@ export function Patrimonio() {
             {!hasPropertyInInversiones && totalPrice > 0 && (
               <div className="breakdown-row">
                 <span className="breakdown-row__label">Inmueble (valor de mercado)</span>
-                <span className="breakdown-row__value breakdown-row__value--pos">{fmt(totalPrice)} €</span>
+                <span className="breakdown-row__value breakdown-row__value--pos">{fmtVal(totalPrice)} €</span>
               </div>
             )}
             {ahorroInicialEfectivo > 0 && (
               <div className="breakdown-row">
                 <span className="breakdown-row__label">Ahorro disponible</span>
-                <span className="breakdown-row__value breakdown-row__value--pos">{fmt(ahorroInicialEfectivo)} €</span>
+                <span className="breakdown-row__value breakdown-row__value--pos">{fmtVal(ahorroInicialEfectivo)} €</span>
               </div>
             )}
             {inversiones.filter(inv => inv.capitalInicial > 0).map(inv => (
               <div key={inv.id} className="breakdown-row">
                 <span className="breakdown-row__label">{inv.descripcion || 'Inversión'}</span>
-                <span className="breakdown-row__value breakdown-row__value--pos">{fmt(inv.capitalInicial)} €</span>
+                <span className="breakdown-row__value breakdown-row__value--pos">{fmtVal(inv.capitalInicial)} €</span>
               </div>
             ))}
             <div className="breakdown-row breakdown-row--total">
               <span className="breakdown-row__label">Total activos</span>
-              <span className="breakdown-row__value breakdown-row__value--pos">{fmt(adjustedActivos)} €</span>
+              <span className="breakdown-row__value breakdown-row__value--pos">{fmtVal(adjustedActivos)} €</span>
             </div>
           </div>
         </div>
@@ -644,13 +636,13 @@ export function Patrimonio() {
             {!hasMortgageInInversiones && hipoteca.capital > 0 && (
               <div className="breakdown-row">
                 <span className="breakdown-row__label">Hipoteca pendiente</span>
-                <span className="breakdown-row__value breakdown-row__value--neg">{fmt(hipoteca.capital)} €</span>
+                <span className="breakdown-row__value breakdown-row__value--neg">{fmtVal(hipoteca.capital)} €</span>
               </div>
             )}
             {inversiones.filter(inv => inv.capitalInicial < 0).map(inv => (
               <div key={inv.id} className="breakdown-row">
                 <span className="breakdown-row__label">{inv.descripcion || 'Deuda'}</span>
-                <span className="breakdown-row__value breakdown-row__value--neg">{fmt(Math.abs(inv.capitalInicial))} €</span>
+                <span className="breakdown-row__value breakdown-row__value--neg">{fmtVal(Math.abs(inv.capitalInicial))} €</span>
               </div>
             ))}
             {adjustedPasivos === 0 && (
@@ -661,7 +653,7 @@ export function Patrimonio() {
             )}
             <div className="breakdown-row breakdown-row--total">
               <span className="breakdown-row__label">Total pasivos</span>
-              <span className="breakdown-row__value breakdown-row__value--neg">{fmt(adjustedPasivos)} €</span>
+              <span className="breakdown-row__value breakdown-row__value--neg">{fmtVal(adjustedPasivos)} €</span>
             </div>
           </div>
         </div>
@@ -673,28 +665,28 @@ export function Patrimonio() {
         <div className="breakdown-card__rows">
           <div className="breakdown-row">
             <span className="breakdown-row__label">Salario neto</span>
-            <span className="breakdown-row__value breakdown-row__value--pos">{fmt(neto.netoMensual)} €</span>
+            <span className="breakdown-row__value breakdown-row__value--pos">{fmtVal(neto.netoMensual)} €</span>
           </div>
           <div className="breakdown-row">
             <span className="breakdown-row__label">Gastos mensuales</span>
-            <span className="breakdown-row__value breakdown-row__value--neg">−{fmt(totalGastos)} €</span>
+            <span className="breakdown-row__value breakdown-row__value--neg">−{fmtVal(totalGastos)} €</span>
           </div>
           {cuotaHipotecaria > 0 && !gastosList.some(g => g.descripcion.toLowerCase().includes('hipoteca')) && (
             <div className="breakdown-row">
               <span className="breakdown-row__label">Cuota hipotecaria</span>
-              <span className="breakdown-row__value breakdown-row__value--neg">−{fmt(cuotaHipotecaria)} €</span>
+              <span className="breakdown-row__value breakdown-row__value--neg">−{fmtVal(cuotaHipotecaria)} €</span>
             </div>
           )}
           {totalInvestmentContributions > 0 && (
             <div className="breakdown-row">
               <span className="breakdown-row__label">Aportaciones a inversiones</span>
-              <span className="breakdown-row__value">{fmt(totalInvestmentContributions)} €/mes</span>
+              <span className="breakdown-row__value">{fmtVal(totalInvestmentContributions)} €/mes</span>
             </div>
           )}
           <div className="breakdown-row breakdown-row--total">
             <span className="breakdown-row__label">Ahorro neto</span>
             <span className={`breakdown-row__value ${ahorroMensual >= 0 ? 'breakdown-row__value--pos' : 'breakdown-row__value--neg'}`}>
-              {ahorroMensual < 0 ? '−' : ''}{fmt(Math.abs(ahorroMensual))} €/mes
+              {ahorroMensual < 0 ? '−' : ''}{fmtVal(Math.abs(ahorroMensual))} €/mes
             </span>
           </div>
         </div>

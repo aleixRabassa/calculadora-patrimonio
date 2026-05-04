@@ -4,9 +4,11 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularSalarioNeto, calcularAhorroInicialEfectivo, calcularHipoteca } from '../utils/calculations'
 import type { Country } from '../utils/calculations'
 import './Ingresos.css'
+import { fmtAxisTick } from '../utils/format'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const fmtVal = (n: number) => n > 1_000_000_000_000 ? <span className="infinity-symbol">∞</span> : fmt(n)
 
 interface SubidaSalarial {
   id: string
@@ -415,7 +417,7 @@ export function Ingresos() {
             <div className="gastos__title">
               <h3>Otros ingresos brutos</h3>
               {totalOtrosIngresosMensual > 0 && (
-                <span className="gastos__total">{fmt(totalOtrosIngresosMensual * 12)} €/año</span>
+                <span className="gastos__total">{fmtVal(totalOtrosIngresosMensual * 12)} €/año</span>
               )}
             </div>
             <span className={`gastos__toggle${otrosIngresosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
@@ -494,15 +496,15 @@ export function Ingresos() {
             </div>
           </div>
           <div className="computed-value">
-            {fmt(netoInfo.netoMensual)} €/mes
+            {fmtVal(netoInfo.netoMensual)} €/mes
             {totalOtrosIngresosMensual > 0 && (
-              <span className="detail">Bruto total: {fmt(brutoAnualTotal)} €/año</span>
+              <span className="detail">Bruto total: {fmtVal(brutoAnualTotal)} €/año</span>
             )}
           </div>
           <label className="computed-sublabel">{totalOtrosIngresosMensual > 0 ? 'Ingresos netos anuales' : 'Salario neto anual'}</label>
           <div className="computed-value">
-            {fmt(netoInfo.netoAnual)} €/año
-            <span className="detail">IRPF efectivo: {fmtPct(netoInfo.tipoEfectivoIRPF)}% · Total retenido: {fmt(netoInfo.irpf + netoInfo.seguridadSocial)} €</span>
+            {fmtVal(netoInfo.netoAnual)} €/año
+            <span className="detail">IRPF efectivo: {fmtPct(netoInfo.tipoEfectivoIRPF)}% · Total retenido: {fmtVal(netoInfo.irpf + netoInfo.seguridadSocial)} €</span>
           </div>
         </div>
 
@@ -515,7 +517,7 @@ export function Ingresos() {
           >
             <div className="gastos__title">
               <h3>Gastos periódicos</h3>
-              <span className="gastos__total">{fmt(totalGastos)} €/mes</span>
+              <span className="gastos__total">{fmtVal(totalGastos)} €/mes</span>
             </div>
             <span className={`gastos__toggle${gastosExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
           </button>
@@ -587,8 +589,8 @@ export function Ingresos() {
           <div className="field field--computed">
             <label>Ahorro actual disponible</label>
             <div className={`computed-value ${ahorroInicialEfectivo < 0 ? 'computed-value--negative' : ''}`}>
-              {fmt(ahorroInicialEfectivo)} €
-              <span className="detail">Ahorro actual {fmt(state.ahorroInicial)} € − Gastos únicos {fmt(totalGastosVez)} €</span>
+              {fmtVal(ahorroInicialEfectivo)} €
+              <span className="detail">Ahorro actual {fmtVal(state.ahorroInicial ?? 0)} € − Gastos únicos {fmtVal(totalGastosVez)} €</span>
             </div>
           </div>
         )}
@@ -596,7 +598,7 @@ export function Ingresos() {
         <div className="field field--computed">
           <label>Ahorro mensual</label>
           <div className={`computed-value ${ahorroMensual < 0 ? 'computed-value--negative' : ''}`}>
-            {fmt(ahorroMensual)} €/mes
+            {fmtVal(ahorroMensual)} €/mes
           </div>
         </div>
 
@@ -695,16 +697,7 @@ export function Ingresos() {
             <YAxis
               yAxisId="salary"
               orientation="left"
-              tickFormatter={v => {
-                if (v >= 1000) {
-                  const k = v / 1000
-                  const formatted = k.toFixed(1)
-                  return formatted.endsWith('.0')
-                    ? `${Math.round(k)}k€`
-                    : `${formatted.replace('.', ',')}k€`
-                }
-                return `${Math.round(v)}€`
-              }}
+              tickFormatter={fmtAxisTick}
               tick={{ fontSize: 12 }}
               width={55}
               domain={[
@@ -715,11 +708,7 @@ export function Ingresos() {
             <YAxis
               yAxisId="savings"
               orientation="right"
-              tickFormatter={v => {
-                const k = v / 1000
-                const formatted = k.toFixed(0)
-                return `${formatted.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}k€`
-              }}
+              tickFormatter={fmtAxisTick}
               tick={{ fontSize: 12 }}
               width={55}
               domain={[
@@ -786,7 +775,7 @@ export function Ingresos() {
               <div className={`goal-result${dateTargetResult.type === 'found' ? ' goal-result--date' : ' goal-result--warn'}`}>
                 {dateTargetResult.type === 'found' && (
                   <>
-                    <span className="goal-result__amount">{dateTargetResult.savings.toLocaleString('es-ES')} €</span>
+                    <span className="goal-result__amount">{fmtVal(dateTargetResult.savings)} €</span>
                     <span className="goal-result__label">ahorrados en esa fecha</span>
                     {!dateTargetResult.inChartRange && (
                       <span className="goal-result__note">Amplía el horizonte para ver el punto</span>
@@ -822,7 +811,7 @@ export function Ingresos() {
                 {savingsTargetResult.type === 'found' && (
                   <>
                     <span className="goal-result__amount">{savingsTargetResult.dateLabel}</span>
-                    <span className="goal-result__label">con {savingsTargetResult.savings.toLocaleString('es-ES')}€ ahorrados</span>
+                    <span className="goal-result__label">con {fmtVal(savingsTargetResult.savings)}€ ahorrados</span>
                     {!savingsTargetResult.inChartRange && (
                       <span className="goal-result__note">Amplía el horizonte para ver el punto</span>
                     )}

@@ -12,10 +12,12 @@ import {
 import type { Country, ScheduledContribution } from '../utils/calculations'
 import './Hipoteca.css'
 import './Ingresos.css'
+import { fmtAxisTick } from '../utils/format'
 
 const fmt = (n: number) => (Math.round(n) || 0).toLocaleString('es-ES')
 const fmtDec = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const fmtVal = (n: number) => n > 1_000_000_000_000 ? <span className="infinity-symbol">∞</span> : fmt(n)
 
 interface ExtraordinaryContribution {
   id: string
@@ -104,7 +106,7 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'rgba(229, 62, 62, 0.4)' }} />
           <span className="chart-tooltip__label">Capital pendiente (sin amort.)</span>
-          <span className="chart-tooltip__value">{fmt(outstandingBase)} €</span>
+          <span className="chart-tooltip__value">{fmtVal(outstandingBase)} €</span>
         </div>
       )}
       {typeof outstanding === 'number' && (
@@ -113,35 +115,35 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
           <span className="chart-tooltip__label">
             Capital pendiente
           </span>
-          <span className="chart-tooltip__value">{fmt(outstanding)} €</span>
+          <span className="chart-tooltip__value">{fmtVal(outstanding)} €</span>
         </div>
       )}
       {hasContributions && typeof principalBase === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'rgba(99, 200, 132, 0.4)' }} />
           <span className="chart-tooltip__label">Capital amortizado (sin amort.)</span>
-          <span className="chart-tooltip__value">{fmt(principalBase)} €</span>
+          <span className="chart-tooltip__value">{fmtVal(principalBase)} €</span>
         </div>
       )}
       {typeof principal === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'rgb(99, 200, 132)' }} />
           <span className="chart-tooltip__label">Capital amortizado</span>
-          <span className="chart-tooltip__value">{fmt(principal)} €</span>
+          <span className="chart-tooltip__value">{fmtVal(principal)} €</span>
         </div>
       )}
       {hasContributions && typeof interestBase === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'rgba(246, 173, 85, 0.4)' }} />
           <span className="chart-tooltip__label">Intereses pagados (sin amort.)</span>
-          <span className="chart-tooltip__value">{fmt(interestBase)} €</span>
+          <span className="chart-tooltip__value">{fmtVal(interestBase)} €</span>
         </div>
       )}
       {typeof interest === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: '#f6ad55' }} />
           <span className="chart-tooltip__label">Intereses pagados</span>
-          <span className="chart-tooltip__value">{fmt(interest)} €</span>
+          <span className="chart-tooltip__value">{fmtVal(interest)} €</span>
         </div>
       )}
     </div>
@@ -477,9 +479,9 @@ export function Hipoteca() {
             </button>
           </div>
           <div className="computed-value">
-            {fmt(totalEntry)} €
+            {fmtVal(totalEntry)} €
             <span className="detail">
-              Entrada bruta {fmt(downPayment)} € + ITP {fmt(itpAmount)} € + Gastos {fmt(purchaseCosts)} €
+              Entrada bruta {fmtVal(downPayment)} € + ITP {fmtVal(itpAmount)} € + Gastos {fmtVal(purchaseCosts)} €
             </span>
           </div>
         </div>
@@ -494,7 +496,7 @@ export function Hipoteca() {
                 setState(prev => ({ ...prev, additionalEntry: Math.round(surplusSavings) }))
               }}
             >
-              Ahorro disponible: {fmt(surplusSavings)} €
+              Ahorro disponible: {fmtVal(surplusSavings)} €
             </button>
           </div>
           <div className="input-group">
@@ -550,9 +552,9 @@ export function Hipoteca() {
         <div className="field field--computed">
           <label>Cuota mensual</label>
           <div className="computed-value">
-            {fmt(hipoteca.cuotaMensual)} €/mes
+            {fmtVal(hipoteca.cuotaMensual)} €/mes
             <span className="detail">
-              Capital financiado: {fmt(hipoteca.capital)} € · Intereses totales: {fmt(hipoteca.interesesTotales)} €
+              Capital financiado: {fmtVal(hipoteca.capital)} € · Intereses totales: {fmtVal(hipoteca.interesesTotales)} €
             </span>
           </div>
         </div>
@@ -586,7 +588,7 @@ export function Hipoteca() {
               className={`sync-link${isSyncedWithSavings ? ' sync-link--synced' : ''}`}
               onClick={() => setState(prev => ({ ...prev, annualContribution: annualizedSavings }))}
             >
-              Ahorro anual disponible: {fmt(annualizedSavings)} €
+              Ahorro anual disponible: {fmtVal(annualizedSavings)} €
             </button>
           </div>
           <div className="input-group">
@@ -613,7 +615,7 @@ export function Hipoteca() {
           >
             <div className="gastos__title">
               <h3>Aportaciones extraordinarias</h3>
-              <span className="gastos__total">{fmt(totalExtraordinary)} €</span>
+              <span className="gastos__total">{fmtVal(totalExtraordinary)} €</span>
             </div>
             <span className={`gastos__toggle${extraordinaryExpanded ? ' gastos__toggle--open' : ''}`}>▼</span>
           </button>
@@ -682,10 +684,7 @@ export function Hipoteca() {
                 tick={{ fontSize: 12, dy: 5 }}
               />
               <YAxis
-                tickFormatter={v => {
-                  if (v === 0) return '0€'
-                  return `${Math.round(v / 1000)}k€`
-                }}
+                tickFormatter={fmtAxisTick}
                 tick={{ fontSize: 12 }}
                 width={55}
               />
@@ -779,11 +778,11 @@ export function Hipoteca() {
             <div className="computed-value">
               {state.amortizationType === 'cuota' ? (
                 <>
-                  {fmt(payoffInfo.finalPayment ?? hipoteca.cuotaMensual)} €/mes <span className="detail hipoteca__last-payment-note">*última cuota</span>
+                  {fmtVal(payoffInfo.finalPayment ?? hipoteca.cuotaMensual)} €/mes <span className="detail hipoteca__last-payment-note">*última cuota</span>
                   <span className="detail hipoteca__savings-detail">
-                    {fmt(Math.max(0, hipoteca.cuotaMensual - (payoffInfo.finalPayment ?? hipoteca.cuotaMensual)))} €/mes menos en cuota
+                    {fmtVal(Math.max(0, hipoteca.cuotaMensual - (payoffInfo.finalPayment ?? hipoteca.cuotaMensual)))} €/mes menos en cuota
                     {' · '}
-                    {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
+                    {fmtVal(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
                   </span>
                 </>
               ) : (
@@ -795,7 +794,7 @@ export function Hipoteca() {
                       ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
                       : `${payoffInfo.monthsSaved} meses antes`}
                     {' · '}
-                    {fmt(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
+                    {fmtVal(Math.max(0, payoffInfo.interestSaved))} € menos en intereses
                   </span>
                 </>
               )}
