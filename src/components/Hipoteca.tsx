@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useRef } from 'react'
 import type { ReactNode } from 'react'
-import { Area, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import {
   calcularHipoteca,
@@ -289,9 +289,12 @@ export function Hipoteca() {
   const chartData: ChartPoint[] = useMemo(() => {
     const baseSchedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
 
-    // Investment values (non-mortgage, non-property) projected over the mortgage term
+    // Investment values: exclude debts (capitalInicial < 0) and real estate
+    const desc = (inv: MinimalInvestmentItem) => inv.descripcion.toLowerCase()
     const relevantInversiones = (inversionState.inversiones ?? []).filter(
-      inv => inv.descripcion !== 'Hipoteca (deuda)' && inv.descripcion !== 'Inmueble (activo)'
+      inv => inv.capitalInicial >= 0
+        && !desc(inv).includes('inmueble')
+        && !desc(inv).includes('vivienda')
     )
     const totalMonths = state.termYears * 12
     const inflationPct = inversionState.inflationPct ?? 2.5
@@ -356,6 +359,32 @@ export function Hipoteca() {
     }
     return null
   }, [hasInvestmentLine, chartData, state.termYears])
+
+  const chartReferenceLines = useMemo(() => {
+    if (chartData.length === 0) return []
+    const now = new Date()
+    const toLabel = (idx: number) => {
+      const date = new Date(now.getFullYear(), now.getMonth() + idx, 1)
+      const raw = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
+      return raw.charAt(0).toUpperCase() + raw.slice(1)
+    }
+    const lines: Array<{ idx: number; label: string; type: 'crossover' | 'payoff' }> = []
+
+    const payoffIdx = (() => {
+      const idx = chartData.findIndex(p => (p.outstandingPrincipal ?? 1) <= 0.01)
+      return idx > 0 ? idx : chartData.length - 1
+    })()
+
+    if (state.amortizationType !== 'cuota') {
+      lines.push({ idx: payoffIdx, label: toLabel(payoffIdx), type: 'payoff' })
+    }
+
+    if (investmentPayoffInfo && investmentPayoffInfo.crossoverMonth < payoffIdx) {
+      lines.push({ idx: investmentPayoffInfo.crossoverMonth, label: toLabel(investmentPayoffInfo.crossoverMonth), type: 'crossover' })
+    }
+
+    return lines
+  }, [chartData, investmentPayoffInfo, state.amortizationType])
 
   const xInterval = (() => {
     if (state.termYears <= 5) return 11
@@ -751,7 +780,7 @@ export function Hipoteca() {
           )}
         </h3>
         {chartData.length > 0 && (
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={420}>
             <ComposedChart data={chartData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
               <XAxis
                 dataKey="month"
@@ -857,6 +886,21 @@ export function Hipoteca() {
                   legendType="line"
                 />
               )}
+              {chartReferenceLines.map(line => (
+                <ReferenceLine
+                  key={line.type}
+                  x={line.idx}
+                  stroke={line.type === 'crossover' ? 'rgba(160,160,160,0.6)' : 'rgba(160,160,160,0.6)'}
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: line.label,
+                    position: 'insideTopRight',
+                    fontSize: 11,
+                    fill: line.type === 'crossover' ? 'rgba(180,180,180,0.85)' : 'rgba(180,180,180,0.85)',
+                  }}
+                />
+              ))}
             </ComposedChart>
           </ResponsiveContainer>
         )}
@@ -897,9 +941,10 @@ export function Hipoteca() {
         {/* Investment crossover: when accumulated investments could cover the outstanding principal */}
         {investmentPayoffInfo && investmentPayoffInfo.remainingMonths > 0 && (
           <div className="field field--computed hipoteca__savings">
-            <label>Con inversiones acumuladas</label>
+            <label>Con inversiones y ahorros</label>
             <div className="computed-value">
-              {investmentPayoffInfo.dateLabel}
+              {Math.floor(investmentPayoffInfo.crossoverMonth / 12)} años
+              {investmentPayoffInfo.crossoverMonth % 12 > 0 ? ` ${investmentPayoffInfo.crossoverMonth % 12} meses` : ''}
               <span className="detail hipoteca__savings-detail">
                 {investmentPayoffInfo.remainingMonths >= 12
                   ? `${Math.floor(investmentPayoffInfo.remainingMonths / 12)} año${Math.floor(investmentPayoffInfo.remainingMonths / 12) > 1 ? 's' : ''}${investmentPayoffInfo.remainingMonths % 12 > 0 ? ` y ${investmentPayoffInfo.remainingMonths % 12} meses` : ''} antes del plazo`
@@ -914,10 +959,12 @@ export function Hipoteca() {
         {/* Amortization schedule table */}
         {detailedSchedule.length > 0 && (
           <div className="schedule-panel">
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               className="schedule-panel__header"
               onClick={() => setScheduleExpanded(prev => !prev)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setScheduleExpanded(prev => !prev); } }}
               aria-expanded={scheduleExpanded}
             >
               <span>Simulación de cuotas</span>
@@ -944,7 +991,7 @@ export function Hipoteca() {
                 </div>
                 <span className={`schedule-panel__toggle${scheduleExpanded ? ' schedule-panel__toggle--open' : ''}`}>▼</span>
               </span>
-            </button>
+            </div>
             {scheduleExpanded && (
               <div className="schedule-panel__body">
                 <table className="schedule-table">
