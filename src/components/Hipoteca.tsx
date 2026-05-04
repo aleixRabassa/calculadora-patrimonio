@@ -17,6 +17,7 @@ import { fmtAxisTick } from '../utils/format'
 const fmt = (n: number) => (Math.round(n) || 0).toLocaleString('es-ES')
 const fmtDec = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const fmtDecVal = (n: number) => Math.abs(n) > 1_000_000_000_000 ? <span className="infinity-symbol">∞</span> : fmtDec(n)
 const fmtVal = (n: number) => n > 1_000_000_000_000 ? <span className="infinity-symbol">∞</span> : fmt(n)
 
 interface ExtraordinaryContribution {
@@ -861,9 +862,9 @@ export function Hipoteca() {
                           <tr key={row.num}>
                             <td className="schedule-table__num">{row.num}</td>
                             <td>{row.date}</td>
-                            <td className="schedule-table__amount">{fmtDec(row.principal)} €</td>
-                            <td className="schedule-table__interest">{fmtDec(row.interest)} €</td>
-                            <td className="schedule-table__outstanding">{fmtDec(row.outstanding)} €</td>
+                            <td className="schedule-table__amount">{fmtDecVal(row.principal)} €</td>
+                            <td className="schedule-table__interest">{fmtDecVal(row.interest)} €</td>
+                            <td className="schedule-table__outstanding">{fmtDecVal(row.outstanding)} €</td>
                           </tr>
                         )
                         const isLastRow = i === detailedSchedule.length - 1
@@ -873,9 +874,9 @@ export function Hipoteca() {
                             <tr key={`year-${yearNum}`} className="schedule-table__year-summary">
                               <td className="schedule-table__year-label">Año {yearNum}</td>
                               <td />
-                              <td className="schedule-table__amount">{fmtDec(yearPrincipal)} €</td>
-                              <td className="schedule-table__interest">{fmtDec(yearInterest)} €</td>
-                              <td className="schedule-table__outstanding">{fmtDec(row.outstanding)} €</td>
+                              <td className="schedule-table__amount">{fmtDecVal(yearPrincipal)} €</td>
+                              <td className="schedule-table__interest">{fmtDecVal(yearInterest)} €</td>
+                              <td className="schedule-table__outstanding">{fmtDecVal(row.outstanding)} €</td>
                             </tr>
                           )
                           yearPrincipal = 0
