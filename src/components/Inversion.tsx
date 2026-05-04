@@ -8,6 +8,7 @@ import './Inversion.css'
 import './Ingresos.css'
 
 const fmt = (n: number) => Math.round(n).toLocaleString('es-ES')
+const fmtValue = (n: number) => n > 1_000_000_000_000 ? '∞' : fmt(n)
 const fmtPct = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const truncate = (str: string, max = 15) => str.length > max ? `${str.slice(0, max)}…` : str
 
@@ -27,6 +28,7 @@ interface InvestmentItem {
   aportacionMensual: number
   rentabilidadAnual: number
   color: string
+  aportacionManual?: boolean
 }
 
 interface InversionState {
@@ -258,6 +260,7 @@ export function Inversion() {
   const recalcAhorro = (list: InvestmentItem[]): InvestmentItem[] => {
     const ahorroIdx = list.findIndex(inv => inv.descripcion === 'Ahorro disponible')
     if (ahorroIdx === -1) return list
+    if (list[ahorroIdx].aportacionManual) return list
     const otherContribs = list
       .filter((_, idx) => idx !== ahorroIdx)
       .reduce((s, inv) => s + inv.aportacionMensual, 0)
@@ -289,13 +292,20 @@ export function Inversion() {
     }))
   }
 
+  const clearInversiones = () => {
+    setState(prev => ({ ...prev, inversiones: [] }))
+  }
+
   const updateInversion = (id: string, field: keyof InvestmentItem, value: string | number) => {
     setState(prev => {
       const updated = (prev.inversiones ?? []).map(i => i.id === id ? { ...i, [field]: value } : i)
 
       if (field === 'aportacionMensual') {
         const editedRow = updated.find(i => i.id === id)
-        if (editedRow?.descripcion !== 'Ahorro disponible') return { ...prev, inversiones: recalcAhorro(updated) }
+        if (editedRow?.descripcion === 'Ahorro disponible') {
+          return { ...prev, inversiones: updated.map(i => i.id === id ? { ...i, aportacionManual: true } : i) }
+        }
+        return { ...prev, inversiones: recalcAhorro(updated) }
       }
 
       return { ...prev, inversiones: updated }
@@ -432,7 +442,7 @@ export function Inversion() {
             <div className="summary-card">
               <div className="summary-card__label">Valor real a {horizonYears} {horizonYears === 1 ? 'año' : 'años'}</div>
               <div className="summary-card__value summary-card__value--accent">
-                {fmt(totalFinalValue)} €
+                {fmtValue(totalFinalValue)} €
                 <div className="summary-card__detail">*inflación aplicada</div>
               </div>
             </div>
@@ -663,7 +673,7 @@ export function Inversion() {
                     </div>
                   </td>
                   <td className="inversion-table__final-value">
-                    {fmt(finalValue)} €
+                    {fmtValue(finalValue)} €
                   </td>
                   <td>
                     <button type="button" className="btn-remove" onClick={() => removeInversion(inv.id)}>✕</button>
@@ -678,6 +688,7 @@ export function Inversion() {
                 <button type="button" className="btn-add" onClick={addInversion}>+ Añadir inversión</button>
                 <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion} disabled={hasHipotecaRows}>🏠 Añadir hipotecas</button>
                 <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion} disabled={hasAhorroRow}>💰 Añadir ahorro</button>
+                <button type="button" className="btn-add btn-add--danger" onClick={clearInversiones} disabled={inversiones.length === 0}>🗑 Borrar todo</button>
               </td>
             </tr>
           </tfoot>
