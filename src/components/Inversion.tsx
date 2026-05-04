@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
-import { Area, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import type { Country } from '../utils/calculations'
 import { calcularAhorroInicialEfectivo, calcularHipoteca, calcularSalarioNeto, generateInvestmentSchedule } from '../utils/calculations'
@@ -170,7 +170,13 @@ function InversionChartTooltip({ active, payload, label, inversiones }: ChartToo
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
           <span className="chart-tooltip__label">Total aportado</span>
-          <span className="chart-tooltip__value">{fmtVal(totalContributed)} € · +{fmtPctVal(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%</span>
+          <span className="chart-tooltip__value">
+            {fmtVal(totalContributed)} €
+            {' · '}
+            <span style={{ color: totalValue >= totalContributed ? '#48bb78' : '#e53e3e' }}>
+              {totalValue >= totalContributed ? '+' : ''}{fmtPctVal(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%
+            </span>
+          </span>
         </div>
       )}
     </div>
@@ -507,6 +513,7 @@ export function Inversion() {
               <Legend
                 formatter={v => {
                   if (v === 'totalContributed') return 'Total aportado'
+                  if (v === 'total') return 'Total'
                   const inv = inversiones.find(i => `inv_${i.id}` === v)
                   return truncate(inv?.descripcion || 'Inversión')
                 }}
@@ -517,10 +524,9 @@ export function Inversion() {
                   key={inv.id}
                   type="monotone"
                   dataKey={`inv_${inv.id}`}
-                  stackId="investments"
-                  fill={`${inv.color}20`}
+                  fill={`${inv.color}18`}
                   stroke={inv.color}
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   name={`inv_${inv.id}`}
                 />
               ))}
@@ -533,6 +539,14 @@ export function Inversion() {
                 strokeDasharray="5 3"
                 strokeOpacity={0.45}
                 name="totalContributed"
+              />
+              <Line
+                type="monotone"
+                dataKey="total"
+                stroke="var(--text-h)"
+                strokeWidth={2}
+                dot={false}
+                name="total"
               />
             </ComposedChart>
           </ResponsiveContainer>
