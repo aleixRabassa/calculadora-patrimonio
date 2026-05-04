@@ -147,7 +147,7 @@ function xAxisInterval(years: number): number {
 export function Ingresos() {
   const [state, setState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_STATE)
   const [hipotecaState] = useLocalStorage<MinimalHipotecaState>('calc.hipoteca', DEFAULT_HIPOTECA)
-  const [horizonYears, setHorizonYears] = useState<number>(5)
+  const [horizonYears, setHorizonYears] = useLocalStorage<number>('app.horizon.ingresos', 5)
   const [fechaObjetivo, setFechaObjetivo] = useLocalStorage<string>('calc.ingresos.fechaObjetivo', '2027-11-01')
   const [ahorroObjetivo, setAhorroObjetivo] = useLocalStorage<number | null>('calc.ingresos.ahorroObjetivo', 100_000)
   const [gastosExpanded, setGastosExpanded] = useState<boolean>(false)

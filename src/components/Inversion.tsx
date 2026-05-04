@@ -194,7 +194,7 @@ function xAxisInterval(years: number): number {
 
 export function Inversion() {
   const [state, setState] = useLocalStorage<InversionState>('calc.inversion', DEFAULT_STATE)
-  const [horizonYears, setHorizonYears] = useState<number>(10)
+  const [horizonYears, setHorizonYears] = useLocalStorage<number>('app.horizon.inversion', 10)
   const [openColorId, setOpenColorId] = useState<string | null>(null)
   const [aportacionUnidades, setAportacionUnidades] = useState<Record<string, 'mes' | 'año'>>({})
 

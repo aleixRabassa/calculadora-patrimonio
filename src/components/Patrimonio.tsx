@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Area, Cell, ComposedChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { calcularHipoteca, calcularSalarioNeto, calcularAhorroInicialEfectivo, generateInvestmentSchedule } from '../utils/calculations'
@@ -172,7 +172,7 @@ export function Patrimonio() {
   const [ingresosState] = useLocalStorage<IngresosState>('calc.ingresos', DEFAULT_INGRESOS)
   const [hipotecaState] = useLocalStorage<HipotecaState>('calc.hipoteca', DEFAULT_HIPOTECA)
   const [inversionState] = useLocalStorage<InversionState>('calc.inversion', DEFAULT_INVERSION)
-  const [horizonYears, setHorizonYears] = useState<number>(10)
+  const [horizonYears, setHorizonYears] = useLocalStorage<number>('app.horizon.patrimonio', 10)
 
   // --- Derived values ---
 
