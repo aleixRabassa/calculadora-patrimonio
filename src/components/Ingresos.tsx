@@ -122,14 +122,14 @@ function ChartTooltip({ active, payload, label, chartData }: ChartTooltipProps) 
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'var(--accent)' }} />
           <span className="chart-tooltip__label">Salario neto</span>
-          <span className="chart-tooltip__value">{salarioValue.toLocaleString('es-ES')} €/mes</span>
+          <span className="chart-tooltip__value">{fmtVal(salarioValue)} €/mes</span>
         </div>
       )}
       {typeof ahorroValue === 'number' && (
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'rgb(99, 200, 132)' }} />
           <span className="chart-tooltip__label">Ahorro acumulado</span>
-          <span className="chart-tooltip__value">{ahorroValue.toLocaleString('es-ES')} €</span>
+          <span className="chart-tooltip__value">{fmtVal(ahorroValue)} €</span>
         </div>
       )}
     </div>

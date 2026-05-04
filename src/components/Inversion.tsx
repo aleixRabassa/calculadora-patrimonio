@@ -170,7 +170,7 @@ function InversionChartTooltip({ active, payload, label, inversiones }: ChartToo
         <div className="chart-tooltip__row">
           <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
           <span className="chart-tooltip__label">Total aportado</span>
-          <span className="chart-tooltip__value">{fmtVal(totalContributed)} € · +{fmtPct(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%</span>
+          <span className="chart-tooltip__value">{fmtVal(totalContributed)} € · +{fmtPctVal(((totalValue - totalContributed) / Math.max(totalContributed, 1)) * 100)}%</span>
         </div>
       )}
     </div>

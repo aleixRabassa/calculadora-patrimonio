@@ -333,6 +333,30 @@ export function Hipoteca() {
 
   const hasInvestmentLine = chartData.length > 0 && chartData[0].investmentValue !== undefined
 
+  // Find the first month where accumulated investments cover the outstanding principal
+  const investmentPayoffInfo = useMemo(() => {
+    if (!hasInvestmentLine || chartData.length === 0) return null
+    for (let idx = 1; idx < chartData.length; idx++) {
+      const point = chartData[idx]
+      if (
+        point.investmentValue !== undefined &&
+        point.investmentValue > 0 &&
+        point.outstandingPrincipal > 0.01 &&
+        point.investmentValue >= point.outstandingPrincipal
+      ) {
+        const lastPoint = chartData[chartData.length - 1]
+        const interestSaved = lastPoint.accumulatedInterest - point.accumulatedInterest
+        const remainingMonths = state.termYears * 12 - idx
+        const now = new Date()
+        const date = new Date(now.getFullYear(), now.getMonth() + idx, 1)
+        const rawLabel = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+        const dateLabel = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
+        return { crossoverMonth: idx, outstanding: point.outstandingPrincipal, investmentValue: point.investmentValue, remainingMonths, interestSaved, dateLabel }
+      }
+    }
+    return null
+  }, [hasInvestmentLine, chartData, state.termYears])
+
   const xInterval = (() => {
     if (state.termYears <= 5) return 11
     if (state.termYears <= 10) return 23
@@ -761,7 +785,7 @@ export function Hipoteca() {
                   if (v === 'accumulatedPrincipalBase') return 'Capital amortizado (sin amort.)'
                   if (v === 'accumulatedPrincipal') return 'Capital amortizado'
                   if (v === 'accumulatedInterestBase') return 'Intereses pagados (sin amort.)'
-                  if (v === 'investmentValue') return 'Inversiones (ahorro excl. hipoteca e inmueble)'
+                  if (v === 'investmentValue') return 'Inversiones y ahorros'
                   return 'Intereses pagados'
                 }}
                 wrapperStyle={{ fontSize: 14, textAlign: 'center', width: '100%', left: 0 }}
@@ -856,7 +880,7 @@ export function Hipoteca() {
               ) : (
                 <>
                   {Math.floor(payoffInfo.enhancedMonths / 12)} años
-                  {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''} de hipoteca
+                  {payoffInfo.enhancedMonths % 12 > 0 ? ` ${payoffInfo.enhancedMonths % 12} meses` : ''}
                   <span className="detail hipoteca__savings-detail">
                     {payoffInfo.monthsSaved >= 12
                       ? `${Math.floor(payoffInfo.monthsSaved / 12)} año${Math.floor(payoffInfo.monthsSaved / 12) > 1 ? 's' : ''}${payoffInfo.monthsSaved % 12 > 0 ? ` y ${payoffInfo.monthsSaved % 12} meses` : ''} antes`
@@ -866,6 +890,23 @@ export function Hipoteca() {
                   </span>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Investment crossover: when accumulated investments could cover the outstanding principal */}
+        {investmentPayoffInfo && investmentPayoffInfo.remainingMonths > 0 && (
+          <div className="field field--computed hipoteca__savings">
+            <label>Con inversiones acumuladas</label>
+            <div className="computed-value">
+              {investmentPayoffInfo.dateLabel}
+              <span className="detail hipoteca__savings-detail">
+                {investmentPayoffInfo.remainingMonths >= 12
+                  ? `${Math.floor(investmentPayoffInfo.remainingMonths / 12)} año${Math.floor(investmentPayoffInfo.remainingMonths / 12) > 1 ? 's' : ''}${investmentPayoffInfo.remainingMonths % 12 > 0 ? ` y ${investmentPayoffInfo.remainingMonths % 12} meses` : ''} antes del plazo`
+                  : `${investmentPayoffInfo.remainingMonths} meses antes del plazo`}
+                {' · '}
+                {fmtVal(Math.max(0, investmentPayoffInfo.interestSaved))} € menos en intereses
+              </span>
             </div>
           </div>
         )}

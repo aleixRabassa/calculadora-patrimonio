@@ -59,7 +59,7 @@ function NetWorthTooltip({ active, payload, label }: NetWorthTooltipProps) {
           <span className="chart-tooltip__dot" style={{ background: 'var(--text)', opacity: 0.45, border: '1.5px dashed var(--text)' }} />
           <span className="chart-tooltip__label">Total aportado</span>
           <span className="chart-tooltip__value">
-            {fmtVal(contributed)} € · {netWorth > contributed ? '+' : ''}{fmtPct(((netWorth - contributed) / Math.max(Math.abs(contributed), 1)) * 100)}%
+            {fmtVal(contributed)} € · {netWorth > contributed ? '+' : ''}{fmtPctVal(((netWorth - contributed) / Math.max(Math.abs(contributed), 1)) * 100)}%
           </span>
         </div>
       )}
