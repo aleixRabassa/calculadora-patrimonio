@@ -8,6 +8,7 @@ import {
   calcularAhorroInicialEfectivo,
   generateAmortizationSchedule,
   generateAmortizationScheduleWithContributions,
+  generateInvestmentSchedule,
 } from '../utils/calculations'
 import type { Country, ScheduledContribution } from '../utils/calculations'
 import './Hipoteca.css'
@@ -64,6 +65,21 @@ interface MinimalIngresosState {
 
 const INGRESOS_FALLBACK: MinimalIngresosState = { brutoAnual: 43_000, gastos: [], gastosExtraordinarios: [], ahorroInicial: 0, country: 'spain' }
 
+interface MinimalInvestmentItem {
+  id: string
+  descripcion: string
+  capitalInicial: number
+  aportacionMensual: number
+  rentabilidadAnual: number
+}
+
+interface MinimalInversionState {
+  inversiones: MinimalInvestmentItem[]
+  inflationPct: number
+}
+
+const INVERSION_FALLBACK: MinimalInversionState = { inversiones: [], inflationPct: 2.5 }
+
 interface ChartPoint {
   month: number
   label: string
@@ -73,6 +89,7 @@ interface ChartPoint {
   accumulatedInterest: number
   accumulatedPrincipalBase?: number
   accumulatedInterestBase?: number
+  investmentValue?: number
 }
 
 interface ChartTooltipProps {
@@ -81,9 +98,10 @@ interface ChartTooltipProps {
   label?: number
   chartData: ChartPoint[]
   hasContributions: boolean
+  hasInvestmentLine: boolean
 }
 
-function HipotecaChartTooltip({ active, payload, label, chartData, hasContributions }: ChartTooltipProps) {
+function HipotecaChartTooltip({ active, payload, label, chartData, hasContributions, hasInvestmentLine }: ChartTooltipProps) {
   if (!active || !payload?.length || label == null) return null
   const point = chartData[label]
   if (!point) return null
@@ -94,6 +112,7 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
   const interest = payload.find(p => p.dataKey === 'accumulatedInterest')?.value
   const principalBase = payload.find(p => p.dataKey === 'accumulatedPrincipalBase')?.value
   const interestBase = payload.find(p => p.dataKey === 'accumulatedInterestBase')?.value
+  const investmentValue = payload.find(p => p.dataKey === 'investmentValue')?.value
 
   const now = new Date()
   const date = new Date(now.getFullYear(), now.getMonth() + point.month, 1)
@@ -147,6 +166,13 @@ function HipotecaChartTooltip({ active, payload, label, chartData, hasContributi
           <span className="chart-tooltip__value">{fmtVal(interest)} €</span>
         </div>
       )}
+      {hasInvestmentLine && typeof investmentValue === 'number' && (
+        <div className="chart-tooltip__row" style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
+          <span className="chart-tooltip__dot" style={{ background: '#7c3aed' }} />
+          <span className="chart-tooltip__label">Inversiones acumuladas</span>
+          <span className="chart-tooltip__value">{fmtVal(investmentValue)} €</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -156,6 +182,9 @@ export function Hipoteca() {
 
   // Read Ingresos state to derive the default monthly savings
   const [ingresosState] = useLocalStorage<MinimalIngresosState>('calc.ingresos', INGRESOS_FALLBACK)
+
+  // Read Inversion state to project non-mortgage, non-property investments
+  const [inversionState] = useLocalStorage<MinimalInversionState>('calc.inversion', INVERSION_FALLBACK)
   const ingresosExpenses = (ingresosState.gastos ?? []).reduce((s, g) => s + g.valor, 0)
   const ingresosNet = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain')
   const defaultAhorroMensual = Math.max(0, ingresosNet.netoMensual - ingresosExpenses)
@@ -260,11 +289,24 @@ export function Hipoteca() {
   const chartData: ChartPoint[] = useMemo(() => {
     const baseSchedule = generateAmortizationSchedule(hipoteca.capital, state.interestRate, state.termYears)
 
+    // Investment values (non-mortgage, non-property) projected over the mortgage term
+    const relevantInversiones = (inversionState.inversiones ?? []).filter(
+      inv => inv.descripcion !== 'Hipoteca (deuda)' && inv.descripcion !== 'Inmueble (activo)'
+    )
+    const totalMonths = state.termYears * 12
+    const inflationPct = inversionState.inflationPct ?? 2.5
+    const investmentSchedules = relevantInversiones.map(inv =>
+      generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, totalMonths, inflationPct)
+    )
+
     if (!enhancedSchedule) {
       return baseSchedule.map((point, idx) => ({
         ...point,
         label: `${Math.floor(point.month / 12)}a ${point.month % 12}m`,
         month: idx,
+        ...(investmentSchedules.length > 0 && {
+          investmentValue: investmentSchedules.reduce((sum, s) => sum + (s[idx]?.value ?? 0), 0),
+        }),
       }))
     }
 
@@ -280,11 +322,16 @@ export function Hipoteca() {
         accumulatedInterest: enhPoint ? enhPoint.accumulatedInterest : lastEnh.accumulatedInterest,
         accumulatedPrincipalBase: basePoint.accumulatedPrincipal,
         accumulatedInterestBase: basePoint.accumulatedInterest,
+        ...(investmentSchedules.length > 0 && {
+          investmentValue: investmentSchedules.reduce((sum, s) => sum + (s[idx]?.value ?? 0), 0),
+        }),
       }
     })
-  }, [hipoteca.capital, state.interestRate, state.termYears, enhancedSchedule])
+  }, [hipoteca.capital, state.interestRate, state.termYears, enhancedSchedule, inversionState])
 
   const startYear = new Date().getFullYear()
+
+  const hasInvestmentLine = chartData.length > 0 && chartData[0].investmentValue !== undefined
 
   const xInterval = (() => {
     if (state.termYears <= 5) return 11
@@ -348,6 +395,7 @@ export function Hipoteca() {
   }, [committedCapital, committedSliderState.interestRate, committedSliderState.termYears, includeAmortizations, enhancedSchedule])
 
   // --- Contribution handlers ---
+  const [contributionUnit, setContributionUnit] = useState<'año' | 'mes'>('año')
   const [extraordinaryExpanded, setExtraordinaryExpanded] = useState(false)
   const totalExtraordinary = extraordinaryList.reduce((sum, c) => sum + c.importe, 0)
 
@@ -589,7 +637,7 @@ export function Hipoteca() {
               className={`sync-link${isSyncedWithSavings ? ' sync-link--synced' : ''}`}
               onClick={() => setState(prev => ({ ...prev, annualContribution: annualizedSavings }))}
             >
-              Ahorro anual disponible: {fmtVal(annualizedSavings)} €
+              Ahorro {contributionUnit === 'mes' ? 'mensual' : 'anual'} disponible: {fmtVal(contributionUnit === 'mes' ? Math.round(annualizedSavings / 12) : annualizedSavings)} €
             </button>
           </div>
           <div className="input-group">
@@ -597,12 +645,19 @@ export function Hipoteca() {
               id="annualContribution"
               type="number"
               min={0}
-              step={100}
-              value={state.annualContribution ?? 0}
+              step={contributionUnit === 'mes' ? 50 : 100}
+              value={contributionUnit === 'mes' ? Math.round((state.annualContribution ?? 0) / 12) : (state.annualContribution ?? 0)}
               onFocus={e => e.target.select()}
-              onChange={e => setState(prev => ({ ...prev, annualContribution: Number(e.target.value) }))}
+              onChange={e => setState(prev => ({ ...prev, annualContribution: contributionUnit === 'mes' ? Number(e.target.value) * 12 : Number(e.target.value) }))}
             />
-            <span className="suffix">€/año</span>
+            <button
+              type="button"
+              className="suffix suffix--toggle"
+              onClick={() => setContributionUnit(u => u === 'año' ? 'mes' : 'año')}
+              title="Cambiar unidad"
+            >
+              €/{contributionUnit}
+            </button>
           </div>
         </div>
 
@@ -695,6 +750,7 @@ export function Hipoteca() {
                     {...(props as unknown as ChartTooltipProps)}
                     chartData={chartData}
                     hasContributions={hasContributions}
+                    hasInvestmentLine={hasInvestmentLine}
                   />
                 )}
               />
@@ -705,6 +761,7 @@ export function Hipoteca() {
                   if (v === 'accumulatedPrincipalBase') return 'Capital amortizado (sin amort.)'
                   if (v === 'accumulatedPrincipal') return 'Capital amortizado'
                   if (v === 'accumulatedInterestBase') return 'Intereses pagados (sin amort.)'
+                  if (v === 'investmentValue') return 'Inversiones (ahorro excl. hipoteca e inmueble)'
                   return 'Intereses pagados'
                 }}
                 wrapperStyle={{ fontSize: 14, textAlign: 'center', width: '100%', left: 0 }}
@@ -762,6 +819,16 @@ export function Hipoteca() {
                   stroke="rgba(246, 173, 85, 0.4)"
                   strokeWidth={1.5}
                   strokeDasharray="5 3"
+                  dot={false}
+                  legendType="line"
+                />
+              )}
+              {hasInvestmentLine && (
+                <Line
+                  type="monotone"
+                  dataKey="investmentValue"
+                  stroke="#7c3aed"
+                  strokeWidth={2}
                   dot={false}
                   legendType="line"
                 />
