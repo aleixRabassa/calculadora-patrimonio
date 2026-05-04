@@ -359,16 +359,29 @@
   font-size: 16px;
   line-height: 1;
   padding: 2px;
-  opacity: 0.18;
-  transition: opacity 0.15s, transform 0.1s;
 
-  &:hover {
+  .btn-realestate__icon {
+    display: inline-block;
+    opacity: 0.18;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  &:hover .btn-realestate__icon {
     opacity: 0.55;
     transform: scale(1.15);
   }
 
-  &.btn-realestate--active {
+  &.btn-realestate--active .btn-realestate__icon {
     opacity: 1;
+  }
+
+  &:disabled {
+    cursor: default;
+
+    &:hover .btn-realestate__icon {
+      opacity: 0.18;
+      transform: none;
+    }
   }
 
   &:hover .btn-realestate__tooltip,

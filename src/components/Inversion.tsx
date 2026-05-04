@@ -648,19 +648,29 @@ export function Inversion() {
                     </div>
                   </td>
                   <td className="inversion-table__col--realestate">
-                    {inv.capitalInicial >= 0 && (
+                    {inv.capitalInicial >= 0 ? (
                       <button
                         type="button"
                         className={`btn-realestate${isRE ? ' btn-realestate--active' : ''}`}
                         onClick={() => toggleRealEstate(inv.id)}
                         aria-label={isRE ? 'Bien raíz (excluido de inversiones financieras)' : 'Marcar como bien raíz'}
                       >
-                        🏠
+                        <span className="btn-realestate__icon">🏠</span>
                         <span className="btn-realestate__tooltip">
                           {isRE
                             ? <><strong>Bien raíz activo</strong><br />Excluido del cálculo de inversiones financieras.</>
                             : 'Marcar como bien raíz'}
                         </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-realestate"
+                        disabled
+                        aria-label="No disponible para deudas"
+                      >
+                        <span className="btn-realestate__icon">🏠</span>
+                        <span className="btn-realestate__tooltip">No disponible para deudas</span>
                       </button>
                     )}
                   </td>
