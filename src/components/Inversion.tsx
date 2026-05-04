@@ -653,9 +653,14 @@ export function Inversion() {
                         type="button"
                         className={`btn-realestate${isRE ? ' btn-realestate--active' : ''}`}
                         onClick={() => toggleRealEstate(inv.id)}
-                        title={isRE ? 'Bien raíz (excluido de inversiones financieras)' : 'Marcar como bien raíz'}
+                        aria-label={isRE ? 'Bien raíz (excluido de inversiones financieras)' : 'Marcar como bien raíz'}
                       >
                         🏠
+                        <span className="btn-realestate__tooltip">
+                          {isRE
+                            ? <><strong>Bien raíz activo</strong><br />Excluido del cálculo de inversiones financieras.</>
+                            : 'Marcar como bien raíz'}
+                        </span>
                       </button>
                     )}
                   </td>

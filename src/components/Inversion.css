@@ -352,6 +352,7 @@
 }
 
 .btn-realestate {
+  position: relative;
   background: none;
   border: none;
   cursor: pointer;
@@ -368,6 +369,38 @@
 
   &.btn-realestate--active {
     opacity: 1;
+  }
+
+  &:hover .btn-realestate__tooltip,
+  &:focus .btn-realestate__tooltip {
+    display: block;
+  }
+}
+
+.btn-realestate__tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text);
+  white-space: normal;
+  width: 200px;
+  text-align: left;
+  z-index: 200;
+  pointer-events: none;
+  line-height: 1.6;
+
+  strong {
+    color: var(--text-h);
+    font-weight: 600;
   }
 }
 

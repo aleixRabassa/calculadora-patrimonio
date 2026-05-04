@@ -94,6 +94,9 @@
 }
 
 .settings-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 9px 14px;
   border: none;
@@ -119,4 +122,19 @@
     background: color-mix(in srgb, var(--red, #ef4444) 12%, transparent);
     color: var(--red, #ef4444);
   }
+}
+
+.settings-item--help {
+  color: var(--accent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+  }
+}
+
+.settings-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
 }
