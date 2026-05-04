@@ -31,6 +31,7 @@ interface InvestmentItem {
   rentabilidadAnual: number
   color: string
   aportacionManual?: boolean
+  isRealEstate?: boolean
 }
 
 interface InversionState {
@@ -320,6 +321,18 @@ export function Inversion() {
     })
   }
 
+  const toggleRealEstate = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      inversiones: (prev.inversiones ?? []).map(inv => {
+        if (inv.id !== id) return inv
+        const d = inv.descripcion.toLowerCase()
+        const current = inv.isRealEstate ?? (d.includes('inmueble') || d.includes('vivienda'))
+        return { ...inv, isRealEstate: !current }
+      }),
+    }))
+  }
+
   const addHipotecaAsInversion = () => {
     const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
     const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
@@ -344,6 +357,7 @@ export function Inversion() {
       aportacionMensual: 0,
       rentabilidadAnual: 2,
       color: colorPiso,
+      isRealEstate: true,
     })
     if (!hasHipoteca) toAdd.push({
       id: crypto.randomUUID(),
@@ -558,6 +572,7 @@ export function Inversion() {
           <thead>
             <tr>
               <th className="inversion-table__col--color" />
+              <th className="inversion-table__col--realestate" />
               <th className="inversion-table__col--desc">Descripción</th>
               <th className="inversion-table__col--num">
                 Capital inicial
@@ -605,6 +620,8 @@ export function Inversion() {
             {inversiones.map(inv => {
               const schedule = generateInvestmentSchedule(inv.capitalInicial, inv.aportacionMensual, inv.rentabilidadAnual, months, inflationPct)
               const finalValue = schedule[schedule.length - 1]?.value ?? 0
+              const d = inv.descripcion.toLowerCase()
+              const isRE = inv.isRealEstate ?? (d.includes('inmueble') || d.includes('vivienda'))
               return (
                 <tr key={inv.id}>
                   <td>
@@ -629,6 +646,18 @@ export function Inversion() {
                         </div>
                       )}
                     </div>
+                  </td>
+                  <td className="inversion-table__col--realestate">
+                    {inv.capitalInicial >= 0 && (
+                      <button
+                        type="button"
+                        className={`btn-realestate${isRE ? ' btn-realestate--active' : ''}`}
+                        onClick={() => toggleRealEstate(inv.id)}
+                        title={isRE ? 'Bien raíz (excluido de inversiones financieras)' : 'Marcar como bien raíz'}
+                      >
+                        🏠
+                      </button>
+                    )}
                   </td>
                   <td>
                     <input
@@ -693,7 +722,7 @@ export function Inversion() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={7} className="inversion-table__add-row">
+              <td colSpan={8} className="inversion-table__add-row">
                 <button type="button" className="btn-add" onClick={addInversion}>+ Añadir inversión</button>
                 <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion} disabled={hasHipotecaRows}>🏠 Añadir hipotecas</button>
                 <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion} disabled={hasAhorroRow}>💰 Añadir ahorro</button>

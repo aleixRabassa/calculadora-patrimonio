@@ -223,6 +223,12 @@
   width: 36px;
 }
 
+.inversion-table__col--realestate {
+  width: 36px;
+  text-align: center;
+  padding-inline: 0;
+}
+
 .inversion-table__col--desc {
   min-width: 160px;
 }
@@ -342,6 +348,26 @@
   &:hover {
     border-color: var(--text);
     transform: scale(1.1);
+  }
+}
+
+.btn-realestate {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px;
+  opacity: 0.18;
+  transition: opacity 0.15s, transform 0.1s;
+
+  &:hover {
+    opacity: 0.55;
+    transform: scale(1.15);
+  }
+
+  &.btn-realestate--active {
+    opacity: 1;
   }
 }
 

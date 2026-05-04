@@ -71,6 +71,7 @@ interface MinimalInvestmentItem {
   capitalInicial: number
   aportacionMensual: number
   rentabilidadAnual: number
+  isRealEstate?: boolean
 }
 
 interface MinimalInversionState {
@@ -291,11 +292,11 @@ export function Hipoteca() {
 
     // Investment values: exclude debts (capitalInicial < 0) and real estate
     const desc = (inv: MinimalInvestmentItem) => inv.descripcion.toLowerCase()
-    const relevantInversiones = (inversionState.inversiones ?? []).filter(
-      inv => inv.capitalInicial >= 0
-        && !desc(inv).includes('inmueble')
-        && !desc(inv).includes('vivienda')
-    )
+    const relevantInversiones = (inversionState.inversiones ?? []).filter(inv => {
+      if (inv.capitalInicial < 0) return false
+      const isRE = inv.isRealEstate ?? (desc(inv).includes('inmueble') || desc(inv).includes('vivienda'))
+      return !isRE
+    })
     const totalMonths = state.termYears * 12
     const inflationPct = inversionState.inflationPct ?? 2.5
     const investmentSchedules = relevantInversiones.map(inv =>
