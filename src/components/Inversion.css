@@ -277,6 +277,12 @@
     border-color: var(--accent-border);
     color: var(--accent);
   }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 }
 
 .inversion-table__footer-label {

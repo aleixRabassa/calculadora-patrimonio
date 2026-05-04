@@ -185,6 +185,10 @@ export function Inversion() {
   const [state, setState] = useLocalStorage<InversionState>('calc.inversion', DEFAULT_STATE)
   const [horizonYears, setHorizonYears] = useState<number>(10)
   const [openColorId, setOpenColorId] = useState<string | null>(null)
+  const [aportacionUnidades, setAportacionUnidades] = useState<Record<string, 'mes' | 'año'>>({})
+
+  const toggleAportacionUnidad = (id: string) =>
+    setAportacionUnidades(prev => ({ ...prev, [id]: (prev[id] ?? 'mes') === 'mes' ? 'año' : 'mes' }))
 
   const [hipotecaState] = useLocalStorage<MinimalHipotecaState>('calc.hipoteca', DEFAULT_HIPOTECA)
   const [ingresosState] = useLocalStorage<MinimalIngresosState>('calc.ingresos', DEFAULT_INGRESOS)
@@ -203,6 +207,18 @@ export function Inversion() {
   const inversiones = useMemo(() => state.inversiones ?? [], [state.inversiones])
   const inflationPct = state.inflationPct ?? 2.5
   const months = horizonYears * 12
+
+  const hasHipotecaRows = inversiones.some(inv => inv.descripcion === 'Inmueble (activo)') && inversiones.some(inv => inv.descripcion === 'Hipoteca (deuda)')
+  const hasAhorroRow = inversiones.some(inv => inv.descripcion === 'Ahorro disponible')
+
+  const derivedAhorroMensual = useMemo(() => {
+    const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => {
+      const tipo = g.tipo ?? 'mes'
+      if (tipo === 'vez') return s
+      return s + (tipo === 'año' ? g.valor / 12 : g.valor)
+    }, 0)
+    return calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain').netoMensual - totalGastos
+  }, [ingresosState])
 
   const chartData = useMemo(() => {
     if (inversiones.length === 0) return []
@@ -239,31 +255,51 @@ export function Inversion() {
   const totalContributed = lastPoint?.totalContributed ?? 0
   const totalReturns = totalFinalValue - totalContributed
 
+  const recalcAhorro = (list: InvestmentItem[]): InvestmentItem[] => {
+    const ahorroIdx = list.findIndex(inv => inv.descripcion === 'Ahorro disponible')
+    if (ahorroIdx === -1) return list
+    const otherContribs = list
+      .filter((_, idx) => idx !== ahorroIdx)
+      .reduce((s, inv) => s + inv.aportacionMensual, 0)
+    const updated = [...list]
+    updated[ahorroIdx] = { ...updated[ahorroIdx], aportacionMensual: derivedAhorroMensual - otherContribs }
+    return updated
+  }
+
   const addInversion = () => {
     const usedColors = new Set(inversiones.map(i => i.color))
     const color = PALETTE_COLORS.find(c => !usedColors.has(c)) ?? PALETTE_COLORS[inversiones.length % PALETTE_COLORS.length]
     setState(prev => ({
       ...prev,
-      inversiones: [...(prev.inversiones ?? []), {
+      inversiones: recalcAhorro([...(prev.inversiones ?? []), {
         id: crypto.randomUUID(),
         descripcion: '',
         capitalInicial: 0,
         aportacionMensual: 0,
         rentabilidadAnual: 7,
         color,
-      }],
+      }]),
     }))
   }
 
   const removeInversion = (id: string) => {
-    setState(prev => ({ ...prev, inversiones: (prev.inversiones ?? []).filter(i => i.id !== id) }))
+    setState(prev => ({
+      ...prev,
+      inversiones: recalcAhorro((prev.inversiones ?? []).filter(i => i.id !== id)),
+    }))
   }
 
   const updateInversion = (id: string, field: keyof InvestmentItem, value: string | number) => {
-    setState(prev => ({
-      ...prev,
-      inversiones: (prev.inversiones ?? []).map(i => i.id === id ? { ...i, [field]: value } : i),
-    }))
+    setState(prev => {
+      const updated = (prev.inversiones ?? []).map(i => i.id === id ? { ...i, [field]: value } : i)
+
+      if (field === 'aportacionMensual') {
+        const editedRow = updated.find(i => i.id === id)
+        if (editedRow?.descripcion !== 'Ahorro disponible') return { ...prev, inversiones: recalcAhorro(updated) }
+      }
+
+      return { ...prev, inversiones: updated }
+    })
   }
 
   const addHipotecaAsInversion = () => {
@@ -274,32 +310,35 @@ export function Inversion() {
     const hipoteca = calcularHipoteca(totalPrice, downPayment + entradaAdicional, hipotecaState.interestRate, hipotecaState.termYears)
     const actualFinanced = hipoteca.capital
 
+    const hasInmueble = inversiones.some(inv => inv.descripcion === 'Inmueble (activo)')
+    const hasHipoteca = inversiones.some(inv => inv.descripcion === 'Hipoteca (deuda)')
+
     const usedColors = new Set(inversiones.map(i => i.color))
     const availableColors = PALETTE_COLORS.filter(c => !usedColors.has(c))
     const colorPiso = availableColors[0] ?? PALETTE_COLORS[(inversiones.length) % PALETTE_COLORS.length]
     const colorHipoteca = availableColors[1] ?? PALETTE_COLORS[(inversiones.length + 1) % PALETTE_COLORS.length]
 
+    const toAdd: InvestmentItem[] = []
+    if (!hasInmueble) toAdd.push({
+      id: crypto.randomUUID(),
+      descripcion: 'Inmueble (activo)',
+      capitalInicial: totalPrice,
+      aportacionMensual: 0,
+      rentabilidadAnual: 2,
+      color: colorPiso,
+    })
+    if (!hasHipoteca) toAdd.push({
+      id: crypto.randomUUID(),
+      descripcion: 'Hipoteca (deuda)',
+      capitalInicial: -actualFinanced,
+      aportacionMensual: actualFinanced / (hipotecaState.termYears * 12),
+      rentabilidadAnual: hipotecaState.interestRate,
+      color: colorHipoteca,
+    })
+
     setState(prev => ({
       ...prev,
-      inversiones: [
-        ...(prev.inversiones ?? []),
-        {
-          id: crypto.randomUUID(),
-          descripcion: 'Inmueble (activo)',
-          capitalInicial: totalPrice,
-          aportacionMensual: 0,
-          rentabilidadAnual: 2,
-          color: colorPiso,
-        },
-        {
-          id: crypto.randomUUID(),
-          descripcion: 'Hipoteca (deuda)',
-          capitalInicial: -actualFinanced,
-          aportacionMensual: actualFinanced / (hipotecaState.termYears * 12),
-          rentabilidadAnual: hipotecaState.interestRate,
-          color: colorHipoteca,
-        },
-      ],
+      inversiones: recalcAhorro([...(prev.inversiones ?? []), ...toAdd]),
     }))
   }
 
@@ -307,14 +346,6 @@ export function Inversion() {
     const totalGastosVez = (ingresosState.gastos ?? []).filter(g => g.tipo === 'vez').reduce((s, g) => s + g.valor, 0)
     const totalGastosExtraordinarios = totalGastosVez + (ingresosState.gastosExtraordinarios ?? []).reduce((s, g) => s + g.importe, 0)
     const ahorroInicialEfectivo = calcularAhorroInicialEfectivo(ingresosState.ahorroInicial ?? 0, totalGastosExtraordinarios)
-
-    const totalGastos = (ingresosState.gastos ?? []).reduce((s, g) => {
-      const tipo = g.tipo ?? 'mes'
-      if (tipo === 'vez') return s
-      return s + (tipo === 'año' ? g.valor / 12 : g.valor)
-    }, 0)
-    const netoMensual = calcularSalarioNeto(ingresosState.brutoAnual, ingresosState.country ?? 'spain').netoMensual
-    const ahorroMensual = netoMensual - totalGastos
 
     const totalPrice = hipotecaState.propertyPrice + hipotecaState.parkingPrice
     const financedAmount = totalPrice * (hipotecaState.financingPct / 100)
@@ -329,7 +360,7 @@ export function Inversion() {
     const totalOtherContributions = nonSavingsRows.reduce((s, inv) => s + inv.aportacionMensual, 0)
 
     const capitalInicial = ahorroInicialEfectivo - totalEntry - entradaAdicional
-    const aportacionMensual = ahorroMensual - totalOtherContributions
+    const aportacionMensual = derivedAhorroMensual - totalOtherContributions
 
     const existingAhorro = inversiones.find(inv => inv.descripcion === 'Ahorro disponible')
     const color = existingAhorro?.color
@@ -522,7 +553,7 @@ export function Inversion() {
                 </span>
               </th>
               <th className="inversion-table__col--num">
-                Aportación mensual
+                Aportación
                 <span className="col-info" tabIndex={0}>
                   ?
                   <span className="col-info__tooltip">
@@ -605,12 +636,18 @@ export function Inversion() {
                     <div className="input-group">
                       <input
                         type="number"
-                        step={50}
-                        value={Math.round(inv.aportacionMensual)}
+                        step={aportacionUnidades[inv.id] === 'año' ? 100 : 50}
+                        value={aportacionUnidades[inv.id] === 'año' ? Math.round(inv.aportacionMensual * 12) : Math.round(inv.aportacionMensual)}
                         onFocus={e => e.target.select()}
-                        onChange={e => updateInversion(inv.id, 'aportacionMensual', Number(e.target.value))}
+                        onChange={e => updateInversion(inv.id, 'aportacionMensual', aportacionUnidades[inv.id] === 'año' ? Number(e.target.value) / 12 : Number(e.target.value))}
                       />
-                      <span className="suffix">€/mes</span>
+                      <button
+                        type="button"
+                        className="suffix suffix--toggle"
+                        onClick={() => toggleAportacionUnidad(inv.id)}
+                      >
+                        €/{aportacionUnidades[inv.id] ?? 'mes'}
+                      </button>
                     </div>
                   </td>
                   <td>
@@ -639,8 +676,8 @@ export function Inversion() {
             <tr>
               <td colSpan={7} className="inversion-table__add-row">
                 <button type="button" className="btn-add" onClick={addInversion}>+ Añadir inversión</button>
-                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion}>🏠 Añadir hipotecas</button>
-                <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion}>💰 Añadir ahorro</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addHipotecaAsInversion} disabled={hasHipotecaRows}>🏠 Añadir hipotecas</button>
+                <button type="button" className="btn-add btn-add--secondary" onClick={addAhorroAsInversion} disabled={hasAhorroRow}>💰 Añadir ahorro</button>
               </td>
             </tr>
           </tfoot>
